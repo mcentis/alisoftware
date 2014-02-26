@@ -6,3 +6,9 @@ Current problems:
 - check of the info needed from the config file
 - run number finding algorithm to be improved
 - calibration runs to be done
+
+Note on the Makefile:
+The Makefile will produce an object (.o) in obj for each .cc and .cpp file in src.
+For each .cpp file in src an ececutable will be created in executables.
+The include/clusterDef.h file is used with include/LinkDef.h to create a root dictionary
+for the struct cluster, the dictionary is compiled and linked with the rest of the project.
