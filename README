@@ -1,8 +1,5 @@
 Set of programs to read the data from the alibava setup used in the EPIc test beam.
 Current problems:
-- check clustering algorithm to exlude used strips
-- check clustering algorithm to add neighbouring seeds to the clusers
-- check that the selection of the polarity of the pulse for the seeds works
 - check of the info needed from the config file
 - run number finding algorithm to be improved
 - calibration runs to be done

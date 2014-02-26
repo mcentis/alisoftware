@@ -307,13 +307,14 @@ void DataRun::FindClusters(Float_t* phChannels)
 
   int chNum; // channel number used
   bool isSeed[nChannels] = {0}; // true if the channel is a seed
-  // bool usedSeed[nChannels] = {0}; // true if a seed has been used
+  bool usedStrip[nChannels] = {0}; // true if a strip has been used, to prevent same strip in multiple clusters
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // find seeds
     {
       chNum = goodChannels[iCh]; // take a good channel
 
-      if(phChannels[chNum] / noise[chNum] * polarity > snrSeed) // only seeds of the right polarity are accepted
+      if(phChannels[chNum] / fabs(phChannels[chNum]) == polarity / fabs(polarity) &&
+	 fabs(phChannels[chNum] / noise[chNum]) > snrSeed) // seeds must have the right polarity and pass the seed cut
 	{
 	  seeds.push_back(chNum);
 	  isSeed[chNum] = true;
@@ -327,6 +328,8 @@ void DataRun::FindClusters(Float_t* phChannels)
 
   for(unsigned int iSd = 0; iSd < seeds.size(); ++iSd) // create and grow the cluster
     {
+      if(usedStrip[seeds[iSd]] == true) continue; // if the seed has alredy been used
+
       clus = new cluster();
       AddStrip(clus, phChannels, seeds[iSd]); // add the seed to the cluster
 
@@ -335,16 +338,22 @@ void DataRun::FindClusters(Float_t* phChannels)
 
       iNgh = 1;
 
-      while(growLeft || growRight)
+      do // while(growLeft || growRight)
 	{
 	  if(growLeft)
 	    {
 	      chNum = seeds[iSd] - iNgh; // left direction
-	      if(chNum < 0)
+	      if(chNum < 0 || noise[chNum] == -1) // channel out of margin or it is a bad channel
 		growLeft = false;
 	      else
-		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && isSeed[chNum] == false) // check for snr and that the strip is not a seed, bad channels excluded because noise = -1 for them
-		  AddStrip(clus, phChannels, chNum); // add strip to the cluster
+		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && usedStrip[chNum] == false) // check for snr and that the strip has not already been used
+		  {
+		    if(iNgh == 1 || isSeed[chNum] == false) // if the first neighbour of the seed is another seed add it, otherwise don't
+		      {
+			usedStrip[chNum] = true;
+			AddStrip(clus, phChannels, chNum); // add strip to the cluster
+		      }
+		  }
 		else
 		  growLeft = false;
 	    }
@@ -352,17 +361,23 @@ void DataRun::FindClusters(Float_t* phChannels)
 	  if(growRight)
 	    {
 	      chNum = seeds[iSd] + iNgh; // right direction
-	      if(chNum >= nChannels)
+	      if(chNum >= nChannels || noise[chNum] == -1) // channel out of margin or it is a bad channel
 		growRight = false;
 	      else
-		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && isSeed[chNum] == false) // check for snr and that the strip is not a seed, bad channels excluded because noise = -1 for them
-		  AddStrip(clus, phChannels, chNum); // add strip to the cluster
+		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && usedStrip[chNum] == false) // check for snr and that the strip has not already been used
+		  {
+		    if(iNgh == 1 || isSeed[chNum] == false) // if the first neighbour of the seed is another seed add it, otherwise don't
+		      {
+			usedStrip[chNum] = true;
+			AddStrip(clus, phChannels, chNum); // add strip to the cluster
+		      }
+		  }
 		else
 		  growRight = false;
 	    }
 
 	  iNgh++;
-	}
+	} while(growLeft || growRight);
 
       FindClusterPos(clus); // calculate the position
 
