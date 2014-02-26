@@ -53,6 +53,7 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 
   TH1D* posStrAdc = new TH1D("posStrAdc", "Cluster position in strip number;Position [Strip number];Entries", 1000, 0, 256);
   TH1D* posmmAdc = new TH1D("posmmAdc", "Cluster position in mm;Position [mm];Entries", 1500, 0, 300);
+  TH1I* clustSize = new TH1I("clustSize", "Cluster size in the time cut;Size [Stips];Entries", 21, -0.5, 20.5);
 
   for(long int i = 0; i < nEntries; i++)
     {
@@ -66,7 +67,12 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	  clu = cluVecPtr->at(iCl);
 	  //	  std::cout << clu.adcTot << std::endl;
 	  signalTime->Fill(time, clu.adcTot);
-	  if(timeCut1 < time && time < timeCut2) deposit->Fill(clu.adcTot);
+	  if(timeCut1 < time && time < timeCut2)
+	    {
+	      deposit->Fill(clu.adcTot);
+	      clustSize->Fill(clu.strips.size());
+	    }
+
 	  posStrAdc->Fill(clu.posStrAdc);
 	  posmmAdc->Fill(clu.posmmAdc);
 	}
@@ -111,6 +117,10 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 
   can3->cd(2);
   posmmAdc->Draw();
+
+  TCanvas* can4 = new TCanvas("cluSize");
+  can4->SetTitle("Cluster Size");
+  clustSize->Draw();
 
   return;
 }

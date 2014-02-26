@@ -307,6 +307,7 @@ void DataRun::FindClusters(Float_t* phChannels)
 
   int chNum; // channel number used
   bool isSeed[nChannels] = {0}; // true if the channel is a seed
+  // bool usedSeed[nChannels] = {0}; // true if a seed has been used
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // find seeds
     {
@@ -342,7 +343,7 @@ void DataRun::FindClusters(Float_t* phChannels)
 	      if(chNum < 0)
 		growLeft = false;
 	      else
-		if(phChannels[chNum] / noise[chNum] > snrNeigh && isSeed[chNum] == false) // check for snr and that the strip is not a seed, bad channels excluded because noise = -1 for them
+		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && isSeed[chNum] == false) // check for snr and that the strip is not a seed, bad channels excluded because noise = -1 for them
 		  AddStrip(clus, phChannels, chNum); // add strip to the cluster
 		else
 		  growLeft = false;
@@ -354,7 +355,7 @@ void DataRun::FindClusters(Float_t* phChannels)
 	      if(chNum >= nChannels)
 		growRight = false;
 	      else
-		if(phChannels[chNum] / noise[chNum] > snrNeigh && isSeed[chNum] == false) // check for snr and that the strip is not a seed, bad channels excluded because noise = -1 for them
+		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && isSeed[chNum] == false) // check for snr and that the strip is not a seed, bad channels excluded because noise = -1 for them
 		  AddStrip(clus, phChannels, chNum); // add strip to the cluster
 		else
 		  growRight = false;
