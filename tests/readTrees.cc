@@ -52,7 +52,7 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   int nClust;
 
   TH1D* posStrAdc = new TH1D("posStrAdc", "Cluster position in strip number;Position [Strip number];Entries", 1000, 0, 256);
-  TH1D* posmmAdc = new TH1D("posmmAdc", "Cluster position in mm;Position [mm];Entries", 1500, 0, 300);
+  TH1D* posmmAdc = new TH1D("posmmAdc", "Cluster position in mm;Position [mm];Entries", 1500, 0, 30);
   TH1I* clustSize = new TH1I("clustSize", "Cluster size in the time cut;Size [Stips];Entries", 21, -0.5, 20.5);
 
   for(long int i = 0; i < nEntries; i++)
@@ -79,7 +79,7 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
     }
 
   TProfile* timeProfile = signalTime->ProfileX("timeProfile");
-  timeProfile->SetTitle("Time profile of the signal;Time [ns];Signal [ADC]");
+  timeProfile->SetTitle("Time profile of the cluster charge;Time [ns];Signal [ADC]");
 
   TLine* cut1 = new TLine(timeCut1, 0, timeCut1, 80);
   cut1->SetLineColor(kRed);
