@@ -69,7 +69,8 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   clusterSize = new TH1I("clusterSize", "Cluster size;Number of channels", 256, -0.5, 255.5);
   nClustEvt = new TH1I("nClustEvt", "Number of clusters per event;Number of clusters", 101, -0.5, 100.5);
 
-  signalTime = new TH2D("signalTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -0.5, 1023.5);
+  signalTime = new TH2D("signalTime", "Signal vs time;Time [ns];Signal [ADC]", 60, 0, 120, 1024, -511.5, 511.5);
+  clusterTime = new TH2D("clusterTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -0.5, 1023.5);
 }
 
 DataRun::~DataRun()
@@ -220,12 +221,15 @@ void DataRun::AnalyseData()
 {
   std::vector<cluster>* cluVecPtr = NULL;
   Float_t time;
+  Float_t sig[nChannels] = {0};
 
   cookedEvtTree->SetBranchAddress("clustVec", &cluVecPtr);
+  cookedEvtTree->SetBranchAddress("signal", sig);
   rawEvtTree->SetBranchAddress("time", &time);
 
   cookedEvtTree->SetBranchStatus("*", 0); // deactivate all the branches
   cookedEvtTree->SetBranchStatus("clustVec*", 1); // activate clustVec and all the members of the struct, the sintax with the * is fundamental
+  cookedEvtTree->SetBranchStatus("signal", 1);
 
   rawEvtTree->SetBranchStatus("*", 0);
   rawEvtTree->SetBranchStatus("time", 1);
@@ -240,6 +244,8 @@ void DataRun::AnalyseData()
       rawEvtTree->GetEntry(i);
       cookedEvtTree->GetEntry(i);
 
+      for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) signalTime->Fill(time, sig[goodChannels.at(iCh)]);
+
       nClust = cluVecPtr->size();
       nClustEvt->Fill(nClust);
 
@@ -247,17 +253,22 @@ void DataRun::AnalyseData()
       	for(int iCl = 0; iCl < nClust; iCl++)
       	  {
       	    clu = cluVecPtr->at(iCl);
-	    signalTime->Fill(time, clu.adcTot);
+	    clusterTime->Fill(time, clu.adcTot);
       	  }
     }
 
-  timeProfile = signalTime->ProfileX("timeProfile");
-  timeProfile->SetTitle("Time profile of the signal;Time [ns];Signal [ADC]");
+  signalTimeProfile = signalTime->ProfileX("signalTimeProfile");
+  signalTimeProfile->SetTitle("Time profile of the signal;Time [ns];Signal [ADC]");
+
+  clusterTimeProfile = clusterTime->ProfileX("clusterTimeProfile");
+  clusterTimeProfile->SetTitle("Time profile of the cluster charge;Time [ns];Cluster charge [ADC]");
 
   outFile->cd();
   nClustEvt->Write();
   signalTime->Write();
-  timeProfile->Write();
+  signalTimeProfile->Write();
+  clusterTime->Write();
+  clusterTimeProfile->Write();
 
   rawEvtTree->SetBranchStatus("*", 1); // reactivate all the branches
   cookedEvtTree->SetBranchStatus("*", 1);

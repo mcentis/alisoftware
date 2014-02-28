@@ -52,7 +52,10 @@ class DataRun : public BinaryData
   TH1I* nClustEvt; // number of clusters per event
 
   TH2D* signalTime;
-  TProfile* timeProfile;
+  TProfile* signalTimeProfile;
+
+  TH2D* clusterTime;
+  TProfile* clusterTimeProfile;
 
   void doSpecificStuff();
   void analyseRunHeader();
