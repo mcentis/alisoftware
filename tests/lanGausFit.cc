@@ -76,9 +76,7 @@ Double_t langaufun(Double_t *x, Double_t *par) {
       return (par[2] * step * sum * invsq2pi / par[3]);
 }
 
-
-
-TF1 *langaufit(TH1D *his, Double_t *fitrange, Double_t *startvalues, Double_t *parlimitslo, Double_t *parlimitshi, Double_t *fitparams, Double_t *fiterrors, Double_t *ChiSqr, Int_t *NDF)
+TF1 *langaufit(TH1 *his, Double_t *fitrange, Double_t *startvalues, Double_t *parlimitslo, Double_t *parlimitshi, Double_t *fitparams, Double_t *fiterrors, Double_t *ChiSqr, Int_t *NDF)
 {
    // Once again, here are the Landau * Gaussian parameters:
    //   par[0]=Width (scale) parameter of Landau density
@@ -123,7 +121,6 @@ TF1 *langaufit(TH1D *his, Double_t *fitrange, Double_t *startvalues, Double_t *p
    return (ffit);              // return fit function
 
 }
-
 
 Int_t langaupro(Double_t *params, Double_t &maxx, Double_t &FWHM) {
 
@@ -227,7 +224,7 @@ Int_t langaupro(Double_t *params, Double_t &maxx, Double_t &FWHM) {
    return (0);
 }
 
-void lanGausFit(TH1D* inHist, double fitR1, double fitR2) {
+void lanGausFit(TH1* inHist, double fitR1, double fitR2) {
    // Fitting histo
    printf("Fitting...\n");
 
@@ -237,13 +234,15 @@ void lanGausFit(TH1D* inHist, double fitR1, double fitR2) {
    fr[0]=fitR1;
    fr[1]=fitR2;
 
-   sv[0] = inHist->GetRMS() * 0.2;
-   sv[1] = inHist->GetXaxis()->GetBinCenter(inHist->GetMaximumBin());
-   sv[2] = *(inHist->GetIntegral());
-   sv[3] = inHist->GetRMS() * 0.2;
+   // starting parameters
+   sv[0] = 5;//inHist->GetRMS() * 0.2;
+   sv[1] = inHist->GetXaxis()->GetBinCenter(inHist->GetMaximumBin()); // mpv landau
+   sv[2] = inHist->Integral(); // integral
+   sv[3] = 4; // gaussian width
 
+   // parameter limits
    pllo[0]=0.5; pllo[1]=5.0; pllo[2]=1.0; pllo[3]=0.4;
-   plhi[0]=5.0; plhi[1]=50.0; plhi[2]=1000000.0; plhi[3]=5.0;
+   plhi[0]=10.0; plhi[1]=90.0; plhi[2]=10000000.0; plhi[3]=10.0;
 
    Double_t chisqr;
    Int_t    ndf;
