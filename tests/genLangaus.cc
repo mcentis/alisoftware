@@ -1,7 +1,7 @@
 void genLangaus()
 {
   TF1* lan = new TF1("lan", "landau", 0, 150);
-  lan->SetParameters(1, 40, 2);
+  lan->SetParameters(100, 40, 2); // parameters: constant (as for gaus), mpv, width
 
   TH1F* lanHist = new TH1F("lanHist", "Generated Landau distribution;Energy deposit [A.U.];Entries", 150, 0, 150);
 
@@ -10,7 +10,7 @@ void genLangaus()
 
   TH1F* gausHist = new TH1F("gausHist", "Generated Gauss distribution;Noise [A.U.];Entries", 30, -15, 15);
 
-  TH1F* lanGausHist = new TH1F("lanGausHist", "Convolution of Landau and Gaussian distributions (hopefully);Measured energy deposit [A.U.];Entries", 150, 0, 150);
+  TH1F* lanGausHist = new TH1F("lanGausHist", "Convolution of Landau and Gaussian distributions;Measured energy deposit [A.U.];Entries", 150, 0, 150);
 
   float lanRnd;
   float gausRnd;
