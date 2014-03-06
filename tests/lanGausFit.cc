@@ -253,6 +253,8 @@ void lanGausFit(TH1* inHist, double fitR1, double fitR2) {
 
    printf("Fitting done\nPlotting results...\n");
 
+   std::cout << "MPV:  " << SNRPeak << "   FWHM:  " << SNRFWHM << std::endl;
+
    // Global style settings
    gStyle->SetOptStat(1111);
    gStyle->SetOptFit(111);

@@ -45,6 +45,13 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   cooked->SetBranchAddress("clustVec", &cluVecPtr);
   raw->SetBranchAddress("time", &time);
 
+  // deactivate all branches
+  cooked->SetBranchStatus("*", 0);
+  raw->SetBranchStatus("*", 0);
+  //activate the interesting ones
+  cooked->SetBranchStatus("clustVec*", 1);
+  raw->SetBranchStatus("time", 1);
+
   TH2D* signalTime = new TH2D("signalTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -0.5, 1023.5);
   TH1D* deposit = new TH1D("deposit", "Energy deposit;Cluster charge [ADC]", 1024, -0.5, 1023.5);
 
