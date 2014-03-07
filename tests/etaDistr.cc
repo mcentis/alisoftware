@@ -85,12 +85,12 @@ void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	  // find the strip with the biggest ph in the cluster
 	  seedPH = -1;
 	  for(unsigned int iSt = 0; iSt < clu.strips.size(); ++iSt)
-	    if(fabs(clu.adcStrips.at(iSt)) > seedPH)
+	    if(fabs(clu.adcStrips.at(iSt)) > fabs(seedPH))
 	      {
-		seedPH = clu.adcStrips.at(iSt);
-		seedNum = clu.strips.at(iSt);
+	  	seedPH = clu.adcStrips.at(iSt);
+	  	seedNum = clu.strips.at(iSt);
 	      }
-
+	    
 	  seed->Fill(seedPH); // fill seed charge graph
 
 	  for(unsigned int iSt = 0; iSt < clu.strips.size(); ++iSt) // fill the graphs
@@ -144,7 +144,6 @@ void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   d1L->Draw();
   striCan->cd(3);
   d1R->Draw();
-
 
   return;
 }
