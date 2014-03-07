@@ -342,6 +342,7 @@ void DataRun::FindClusters(Float_t* phChannels)
       if(usedStrip[seeds[iSd]] == true) continue; // if the seed has alredy been used
 
       clus = new cluster();
+      usedStrip[seeds[iSd]] = true; // mark the strip as used
       AddStrip(clus, phChannels, seeds[iSd]); // add the seed to the cluster
 
       growLeft = true;
