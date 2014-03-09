@@ -1,5 +1,6 @@
 #include "vector"
 #include "../include/clusterDef.h"
+#include "../include/constants.h"
 
 #ifdef __CINT__
 #pragma link C++ class cluster+;
@@ -8,6 +9,7 @@
 
 #include "TFile.h"
 #include "TTree.h"
+#include "TGraph.h"
 #include "TH2D.h"
 #include "TProfile.h"
 #include "TCanvas.h"
@@ -20,7 +22,7 @@ void etaDistr()
   return;
 }
 
-void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
+void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  const char* borderStripsFile = "")
 {
   TFile* file = TFile::Open(inFile, "READ");
 
@@ -29,6 +31,24 @@ void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
       std::cout << "Unable to open " << file << std::endl;
       return;
     }
+
+  //read the border strips
+  TGraph* bordStr = NULL;
+  double* bordList = NULL;
+  if(borderStripsFile[0] != '\0') // check if there is a file
+    {
+      bordStr = new TGraph(borderStripsFile);
+      bordList = bordStr->GetX();
+      TCanvas* brdCan = new TCanvas("brdCan");
+      brdCan->SetTitle("Border strips");
+      bordStr->Draw("A*");
+    }
+
+  bool isBorder[nChannels] = {0}; // true if the strip is a border strip
+  if(bordList)
+    for(int i = 0; i < bordStr->GetN(); ++i) isBorder[(int) bordList[i]] = true;
+
+  //for(int i = 0; i < nChannels; ++i) std::cout << "ch: " << i << " is border: " << isBorder[i] << std::endl;
 
   TTree* raw = (TTree*) file->Get("rawEvtTree");
   TTree* cooked = (TTree*) file->Get("cookedEvtTree");
@@ -51,7 +71,7 @@ void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   cooked->SetBranchStatus("clustVec*", 1);
   raw->SetBranchStatus("time", 1);
 
-  TH1D* etaDistr = new TH1D("etaDistr", "#eta distribution;#eta;Entries", 120, -0.5, 1.5);
+  TH1D* etaDis = new TH1D("etaDis", "#eta distribution;#eta;Entries", 120, -0.5, 1.5);
 
   TH2D* clusterShapePH = new TH2D("clusterShapePH", "Pulse heigth vs. position in the cluster (seed strip in 0);Strip;Signal [ADC];Entries", 21, -10.5, 10.5, 400, -200, 200);
 
@@ -83,13 +103,15 @@ void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	  clu = cluVecPtr->at(iCl);
 
 	  // find the strip with the biggest ph in the cluster
-	  seedPH = -1;
+	  seedPH = 0;
 	  for(unsigned int iSt = 0; iSt < clu.strips.size(); ++iSt)
 	    if(fabs(clu.adcStrips.at(iSt)) > fabs(seedPH))
 	      {
 	  	seedPH = clu.adcStrips.at(iSt);
 	  	seedNum = clu.strips.at(iSt);
 	      }
+
+	  if(isBorder[seedNum]) continue; // if the seed is a border strip
 	    
 	  seed->Fill(seedPH); // fill seed charge graph
 
@@ -109,14 +131,18 @@ void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	      sR = clu.adcStrips.at(1);
 	    }
 	  else
-	    {
-	      sR = clu.adcStrips.at(0);
-	      sL = clu.adcStrips.at(1);
-	    }
+	    if(clu.strips.at(0) > clu.strips.at(1))
+	      {
+		sR = clu.adcStrips.at(0);
+		sL = clu.adcStrips.at(1);
+	      }
+	    else
+	      {
+		std::cout << "Error!! Strip numbers: " << clu.strips.at(0) << " , "  << clu.strips.at(1) << "   Total strips in the cluster: " << clu.strips.size() << std::endl;
+		continue;
+	      }
 
-	  // sR = fabs(sR);
-	  // sL = fabs(sL);
-	  etaDistr->Fill(sR / (sR + sL));
+	  etaDis->Fill(sR / (sR + sL));
 	}
     }
 
@@ -125,7 +151,7 @@ void etaDistr(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 
   TCanvas* etaCan = new TCanvas("etaCan");
   etaCan->SetTitle("Eta distribution");
-  etaDistr->Draw();
+  etaDis->Draw("E");
 
   TCanvas* cluShapeCan = new TCanvas("cluShapePH");
   cluShapeCan->SetTitle("Cluster shape signal");
