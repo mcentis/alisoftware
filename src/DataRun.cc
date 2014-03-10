@@ -70,7 +70,7 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   nClustEvt = new TH1I("nClustEvt", "Number of clusters per event;Number of clusters", 101, -0.5, 100.5);
 
   signalTime = new TH2D("signalTime", "Signal vs time;Time [ns];Signal [ADC]", 60, 0, 120, 1024, -511.5, 511.5);
-  clusterTime = new TH2D("clusterTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -0.5, 1023.5);
+  clusterTime = new TH2D("clusterTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -511.5, 511.5);
 }
 
 DataRun::~DataRun()
@@ -299,7 +299,7 @@ void DataRun::WriteCookedTree()
 
 void DataRun::AddStrip(cluster* clu, Float_t* phArray, int stripNum)
 {
-  clu->adcTot += fabs(phArray[stripNum]); // the total charge is defined as positive
+  clu->adcTot += phArray[stripNum]; // the total charge is the sum with sign
   clu->strips.push_back(stripNum);
   clu->adcStrips.push_back(phArray[stripNum]);
 
@@ -405,11 +405,15 @@ void DataRun::FindClusters(Float_t* phChannels)
 void DataRun::FindClusterPos(cluster* clu)
 {
   double sumPos = 0;
+  double sumADC = 0;
 
   for(unsigned int iStr = 0; iStr < clu->strips.size(); ++iStr)
-    sumPos += clu->strips.at(iStr) * fabs(clu->adcStrips.at(iStr));
+    {
+      sumPos += clu->strips.at(iStr) * fabs(clu->adcStrips.at(iStr));
+      sumADC += fabs(clu->adcStrips.at(iStr));
+    }
 
-  clu->posStrAdc = sumPos / clu->adcTot;
+  clu->posStrAdc = sumPos / sumADC;
   clu->posmmAdc = clu->posStrAdc * pitch;
 
   return;

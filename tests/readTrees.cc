@@ -52,7 +52,7 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   cooked->SetBranchStatus("clustVec*", 1);
   raw->SetBranchStatus("time", 1);
 
-  TH2D* signalTime = new TH2D("signalTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -0.5, 1023.5);
+  TH2D* signalTime = new TH2D("signalTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -511.5, 511.5);
   TH1D* deposit = new TH1D("deposit", "Energy deposit;Cluster charge [ADC]", 1024, -0.5, 1023.5);
 
   long int nEntries = cooked->GetEntries();
@@ -76,7 +76,7 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	  signalTime->Fill(time, clu.adcTot);
 	  if(timeCut1 < time && time < timeCut2)
 	    {
-	      deposit->Fill(clu.adcTot);
+	      deposit->Fill(fabs(clu.adcTot));
 	      clustSize->Fill(clu.strips.size());
 	    }
 
