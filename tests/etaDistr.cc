@@ -79,6 +79,9 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
   TH1D* d1L = new TH1D("d1L", "Left neighbour of the seed strip (if included in the cluster);Charge [ADC];Entries", 400, -200, 200);
   TH1D* d1R = new TH1D("d1R", "Right neighbour of the seed strip (if included in the cluster);Charge [ADC];Entries", 400, -200, 200);
 
+  TH1D* leftRatio = new TH1D("leftRatio", "Signal from the left neighbour of the seed strip divided by the seed signal;Charge [ADC];Entries", 100, -2, 2);
+  TH1D* rightRatio = new TH1D("rightRatio", "Signal from the right neighbour of the seed strip divided by the seed signal;Charge [ADC];Entries", 100, -2, 2);
+
   long int nEntries = cooked->GetEntries();
   int nClust;
 
@@ -117,8 +120,18 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
 
 	  for(unsigned int iSt = 0; iSt < clu.strips.size(); ++iSt) // fill the graphs
 	    {
-	      if(clu.strips.at(iSt) == (seedNum - 1)) d1L->Fill(clu.adcStrips.at(iSt)); // left first neighbour
-	      if(clu.strips.at(iSt) == (seedNum + 1)) d1R->Fill(clu.adcStrips.at(iSt)); // right first neighbour
+	      if(clu.strips.at(iSt) == (seedNum - 1)) // left first neighbour
+		{
+		  d1L->Fill(clu.adcStrips.at(iSt));
+		  leftRatio->Fill(clu.adcStrips.at(iSt) / seedPH);
+		}
+
+	      if(clu.strips.at(iSt) == (seedNum + 1)) // right first neighbour
+		{
+		  d1R->Fill(clu.adcStrips.at(iSt));
+		  rightRatio->Fill(clu.adcStrips.at(iSt) / seedPH);
+		}
+
 	      clusterShapePH->Fill(clu.strips.at(iSt) - seedNum, clu.adcStrips.at(iSt));
 	    }
 
@@ -151,7 +164,7 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
 
   TCanvas* etaCan = new TCanvas("etaCan");
   etaCan->SetTitle("Eta distribution");
-  etaDis->Draw("E");
+  etaDis->Draw();
 
   TCanvas* cluShapeCan = new TCanvas("cluShapePH");
   cluShapeCan->SetTitle("Cluster shape signal");
@@ -170,6 +183,14 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
   d1L->Draw();
   striCan->cd(3);
   d1R->Draw();
+
+  TCanvas* crTlkCan = new TCanvas("crTlkCan");
+  crTlkCan->SetTitle("Cross talk");
+  crTlkCan->Divide(2, 0);
+  crTlkCan->cd(1);
+  leftRatio->Draw();
+  crTlkCan->cd(2);
+  rightRatio->Draw();
 
   return;
 }
