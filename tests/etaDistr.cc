@@ -9,6 +9,8 @@
 
 #include "TFile.h"
 #include "TTree.h"
+#include "TLegend.h"
+#include "TStyle.h"
 #include "TGraph.h"
 #include "TH2D.h"
 #include "TProfile.h"
@@ -60,8 +62,10 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
 
   cluster clu;
   Float_t time;
+  Float_t signal[nChannels];
 
   cooked->SetBranchAddress("clustVec", &cluVecPtr);
+  cooked->SetBranchAddress("signal", signal);
   raw->SetBranchAddress("time", &time);
 
   // deactivate all branches
@@ -69,6 +73,7 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
   raw->SetBranchStatus("*", 0);
   //activate the interesting ones
   cooked->SetBranchStatus("clustVec*", 1);
+  cooked->SetBranchStatus("signal", 1);
   raw->SetBranchStatus("time", 1);
 
   TH1D* etaDis = new TH1D("etaDis", "#eta distribution;#eta;Entries", 120, -0.5, 1.5);
@@ -79,8 +84,13 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
   TH1D* d1L = new TH1D("d1L", "Left neighbour of the seed strip (if included in the cluster);Charge [ADC];Entries", 400, -200, 200);
   TH1D* d1R = new TH1D("d1R", "Right neighbour of the seed strip (if included in the cluster);Charge [ADC];Entries", 400, -200, 200);
 
-  TH1D* leftRatio = new TH1D("leftRatio", "Signal from the left neighbour of the seed strip divided by the seed signal;Charge [ADC];Entries", 100, -2, 2);
-  TH1D* rightRatio = new TH1D("rightRatio", "Signal from the right neighbour of the seed strip divided by the seed signal;Charge [ADC];Entries", 100, -2, 2);
+  TH1D* leftRatio = new TH1D("leftRatio", "Signal from the left neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
+  TH1D* rightRatio = new TH1D("rightRatio", "Signal from the right neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
+
+  TH2D* diffVsSeed = new TH2D("diffVsSeed", "PH(L) - PH(R) vs PH(Seed), 2 strips clusters;PH(Seed) [ADC];PH(L) - PH(R) [ADC]", 400, -200, 200, 200, -100, 100);
+
+  TH1D* neighNoiseL = new TH1D("neighNoiseL", "Left neighbour of a single strip cluster;Charge [ADC];Entries", 100, -50, 50);
+  TH1D* neighNoiseR = new TH1D("neighNoiseR", "Right neighbour of a single strip cluster;Charge [ADC];Entries", 100, -50, 50);
 
   long int nEntries = cooked->GetEntries();
   int nClust;
@@ -115,6 +125,13 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
 	      }
 
 	  if(isBorder[seedNum]) continue; // if the seed is a border strip
+
+	  if(clu.strips.size() == 1) // one strip clusters
+	    if(signal[seedNum + 1] && signal[seedNum - 1]) // exclude bad channels
+	      {
+		neighNoiseL->Fill(signal[seedNum - 1]);
+		neighNoiseR->Fill(signal[seedNum + 1]);
+	      }
 	    
 	  seed->Fill(seedPH); // fill seed charge graph
 
@@ -156,6 +173,7 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
 	      }
 
 	  etaDis->Fill(sR / (sR + sL));
+	  diffVsSeed->Fill(seedPH, sL - sR);
 	}
     }
 
@@ -184,13 +202,63 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
   striCan->cd(3);
   d1R->Draw();
 
+  // ratio of the histograms
+  leftRatio->Sumw2(); // important to add and divide histos
+  leftRatio->SetLineColor(kRed);
+  leftRatio->SetLineWidth(2);
+
+  rightRatio->Sumw2(); // important to add and divide histos
+  rightRatio->SetLineColor(kBlue);
+  rightRatio->SetLineWidth(2);
+
+  // normalize the histos to the same value
+  rightRatio->Scale(1 / rightRatio->GetEntries());
+  leftRatio->Scale(1 / leftRatio->GetEntries());
+
+  TH1D* ratioRatio = new TH1D(*leftRatio); // ratio of the ratioes
+  ratioRatio->SetName("ratioRatio");
+  ratioRatio->SetTitle(";PH(Neigh) / PH(Seed);leftRatio / rightRatio");
+  ratioRatio->Divide(rightRatio);
+  ratioRatio->SetLineWidth(2);
+  ratioRatio->SetLineColor(kViolet);
+  ratioRatio->GetYaxis()->SetRangeUser(-1, 3);
+
+  leftRatio->SetTitle(";;Entries");
+  rightRatio->SetTitle(";;Entries");
+
+  // set these to have fancier results
+  // gStyle->SetOptStat(0);
+  // gStyle->SetOptTitle(0);
+
+  TLegend* leg = new TLegend(0.2, 0.6, 0.4, 0.8);
+  leg->AddEntry(leftRatio, "PH(L) / PH(Seed)");
+  leg->AddEntry(rightRatio, "PH(R) / PH(Seed)");
+  leg->SetFillColor(kWhite);
+
   TCanvas* crTlkCan = new TCanvas("crTlkCan");
   crTlkCan->SetTitle("Cross talk");
-  crTlkCan->Divide(2, 0);
+  crTlkCan->Divide(1, 2, 0, 0);
   crTlkCan->cd(1);
-  leftRatio->Draw();
+  crTlkCan->GetPad(1)->SetRightMargin(0.1);
+  rightRatio->Draw("HISTO");
+  leftRatio->Draw("HISTOSAME");
+  leg->Draw();
   crTlkCan->cd(2);
-  rightRatio->Draw();
+  crTlkCan->GetPad(2)->SetRightMargin(0.1);
+  crTlkCan->GetPad(2)->SetGridy();
+  ratioRatio->Draw();
+
+  TCanvas* diffSeedCan = new TCanvas("diffSeedCan");
+  diffSeedCan->SetTitle("Difference vs seed");
+  diffVsSeed->Draw("COLZ");
+
+  TCanvas* neiNoCan = new TCanvas("neiNoCan");
+  neiNoCan->SetTitle("Noise on neighbours");
+  neiNoCan->Divide(1, 2);
+  neiNoCan->cd(1);
+  neighNoiseL->Draw();
+  neiNoCan->cd(2);
+  neighNoiseR->Draw();
 
   return;
 }
