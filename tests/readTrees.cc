@@ -88,10 +88,13 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   TProfile* timeProfile = signalTime->ProfileX("timeProfile");
   timeProfile->SetTitle("Time profile of the cluster charge;Time [ns];Signal [ADC]");
 
-  TLine* cut1 = new TLine(timeCut1, 0, timeCut1, 80);
+  double ymin = -50; //timeProfile->GetYaxis()->GetXmin();
+  double ymax = 50; //timeProfile->GetYaxis()->GetXmax();
+
+  TLine* cut1 = new TLine(timeCut1, ymin, timeCut1, ymax);
   cut1->SetLineColor(kRed);
 
-  TLine* cut2 = new TLine(timeCut2, 0, timeCut2, 80);
+  TLine* cut2 = new TLine(timeCut2, ymin, timeCut2, ymax);
   cut2->SetLineColor(kRed);
 
   TCanvas* can = new TCanvas("Signal time");

@@ -247,6 +247,7 @@ void lanGausFit(TH1* inHist, double fitR1, double fitR2, double gausSig = 1) {
    Double_t chisqr;
    Int_t    ndf;
    TF1 *fitsnr = langaufit(inHist,fr,sv,pllo,plhi,fp,fpe,&chisqr,&ndf);
+   fitsnr->SetLineColor(kRed);
    
    Double_t SNRPeak, SNRFWHM;
    langaupro(fp,SNRPeak,SNRFWHM);

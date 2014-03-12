@@ -1,4 +1,4 @@
-void visualizeEvent(int evtNum, int polarity)
+void visualizeEvent(int evtNum)
 {
   const int nChannels = 256;
 
@@ -32,7 +32,7 @@ void visualizeEvent(int evtNum, int polarity)
     }
 
   for(int i = 0; i < nChannels; ++i)
-    if(noise[i] != -1) snr[i] = commMSubPH[i] / noise[i] * polarity;
+    if(noise[i] != -1) snr[i] = fabs(commMSubPH[i]) / fabs(noise[i]);
 
   TCanvas* evtCan = new TCanvas("evtCan", "Pulse height and common mode");
   evtCan->Divide(3,2);
