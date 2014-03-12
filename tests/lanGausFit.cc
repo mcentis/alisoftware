@@ -224,7 +224,7 @@ Int_t langaupro(Double_t* params, Double_t& maxx, Double_t& FWHM) {
    return (0);
 }
 
-void lanGausFit(TH1* inHist, double fitR1, double fitR2) {
+void lanGausFit(TH1* inHist, double fitR1, double fitR2, double gausSig = 1) {
    // Fitting histo
    printf("Fitting...\n");
 
@@ -238,10 +238,10 @@ void lanGausFit(TH1* inHist, double fitR1, double fitR2) {
    sv[0] = 5;//landau width
    sv[1] = inHist->GetXaxis()->GetBinCenter(inHist->GetMaximumBin()); // mpv landau
    sv[2] = inHist->Integral(); // integral
-   sv[3] = 4; // gaussian width
+   sv[3] = gausSig + gausSig * 0.5; // gaussian width
 
    // parameter limits
-   pllo[0]=0.01; pllo[1]=0.5; pllo[2]=1.0; pllo[3]=0.01;
+   pllo[0]=0.01; pllo[1]=0.5; pllo[2]=1.0; pllo[3]=gausSig;
    plhi[0]=20.0; plhi[1]=200.0; plhi[2]=10000000.0; plhi[3]=20.0;
 
    Double_t chisqr;
