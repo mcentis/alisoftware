@@ -41,7 +41,7 @@ void visualizeEventBeam(int evtNum)
   TH1D* pedsubhist = new TH1D("pedsubhist", TString::Format("Pedestal subtracted pulse height event %i;Channel;PH [ADC]", evtNum), 256, -0.5, 255.5);
   TH1D* pedsubgoodhist = new TH1D("pedsubgoodhist", TString::Format("Pedestal subtracted pulse height good channels event %i;Channel;PH [ADC]", evtNum), 256, -0.5, 255.5);
   TH1D* commsubhist = new TH1D("commsubhist", TString::Format("Common mode subtracted pulse height event %i;Channel;PH [ADC]", evtNum), 256, -0.5, 255.5);
-  TH1D* snrhist = new TH1D("snrhist", TString::Format("Signal to noise ratio event %i;Channel;PH [ADC]", evtNum), 256, -0.5, 255.5);
+  TH1D* snrhist = new TH1D("snrhist", TString::Format("Signal to noise ratio event %i;Channel;SNR", evtNum), 256, -0.5, 255.5);
 
   TF1* cm = new TF1("cm", "[0]", -0.5, 255.5);
   cm->SetParameter(0, commMode);
