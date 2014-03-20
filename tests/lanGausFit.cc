@@ -103,7 +103,7 @@ TF1* langaufit(TH1* his, Double_t* fitrange, Double_t* startvalues, Double_t* pa
 
    TF1* ffit = new TF1(FunName,langaufun,fitrange[0],fitrange[1],4);
    ffit->SetParameters(startvalues);
-   ffit->SetParNames("Width","MP","Area","GSigma");
+   ffit->SetParNames("Width","MPV","Area","GSigma");
    
    for (i=0; i<4; i++) {
       ffit->SetParLimits(i, parlimitslo[i], parlimitshi[i]);
@@ -257,8 +257,8 @@ void lanGausFit(TH1* inHist, double fitR1, double fitR2, double gausSig = 1) {
    std::cout << "MPV:  " << SNRPeak << "   FWHM:  " << SNRFWHM << std::endl;
 
    // Global style settings
-   gStyle->SetOptStat(1111);
-   gStyle->SetOptFit(111);
+   // gStyle->SetOptStat(1111);
+   // gStyle->SetOptFit(111);
 
    TCanvas* fitCan = new TCanvas("fitCan");
    fitCan->SetTitle("Landau Gaussian fit");
