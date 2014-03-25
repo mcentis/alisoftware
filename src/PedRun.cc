@@ -61,9 +61,13 @@ PedRun::PedRun(const char* binFile, ConfigFileReader* Conf):
   redChi2Ped = new TH1F("redChi2Ped", "Reduced #chi^{2} pedestals fit;#chi^{2} / NDF;Entries", 200, 0, 20);
   redChi2Noise = new TH1F("redChi2Noise", "Reduced #chi^{2} noise fit;#chi^{2} / NDF;Entries", 200, 0, 20);
 
-  commModeGr = new TGraph();
-  commModeGr->SetName("commModeGr");
-  commModeGr->SetTitle("Common mode vs. event");
+  commModeGrSlope = new TGraph();
+  commModeGrSlope->SetName("commModeGrSlope");
+  commModeGrSlope->SetTitle("Slope of the common mode vs. event");
+
+  commModeGrOffset = new TGraph();
+  commModeGrOffset->SetName("commModeGrOffset");
+  commModeGrOffset->SetTitle("Offset of the common mode vs. event");
 }
 
 PedRun::~PedRun()
@@ -87,7 +91,7 @@ void PedRun::CommonModeCalculation(double* phChannels, Float_t* res) // cm with 
   double Sxy = 0;
 
   // all the formulas assumes weights = 1
-  S = goodChannels.size(); // all weights = 1
+  S = goodChannels.size();
 
   for(unsigned int i = 0; i < goodChannels.size(); ++i)
     {
@@ -128,7 +132,8 @@ void PedRun::computeNoise()
 	pedSubPH[iCh] = PH[iCh] - pedestals[iCh];
 
       CommonModeCalculation(pedSubPH, commMode);
-      commModeGr->SetPoint(iEvt, iEvt, commMode[1]);
+      commModeGrSlope->SetPoint(iEvt, iEvt, commMode[1]);
+      commModeGrOffset->SetPoint(iEvt, iEvt, commMode[0]);
 
       commBr->Fill(); // fill just this branch
 
@@ -242,10 +247,15 @@ void PedRun::writeHistos()
   NoiseGraph->GetYaxis()->SetRangeUser(0, 20);
   NoiseGraph->Write();
 
-  commModeGr->Draw("AP");
-  commModeGr->GetXaxis()->SetTitle("Event");
-  commModeGr->GetYaxis()->SetTitle("Common mode [ADC]");
-  commModeGr->Write();
+  commModeGrSlope->Draw("AP");
+  commModeGrSlope->GetXaxis()->SetTitle("Event");
+  commModeGrSlope->GetYaxis()->SetTitle("Slope [ADC / Ch. number]");
+  commModeGrSlope->Write();
+
+  commModeGrOffset->Draw("AP");
+  commModeGrOffset->GetXaxis()->SetTitle("Event");
+  commModeGrOffset->GetYaxis()->SetTitle("Offset [ADC]");
+  commModeGrOffset->Write();
 
   delete servCan;
 
