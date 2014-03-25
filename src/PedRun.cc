@@ -78,27 +78,45 @@ void PedRun::doSpecificStuff() // specific version of the function from parent c
   return;
 }
 
-double PedRun::CommonModeCalculation(double* phChannels)
+void PedRun::CommonModeCalculation(double* phChannels, Float_t* res) // cm with slope, the form is y = a + bx (y-> PH, x->ch num) formulas from numerical recipes
 {
-  double sum = 0;
-  for(unsigned int i = 0; i < goodChannels.size(); ++i)
-    sum += phChannels[goodChannels[i]];
+  double S = 0;
+  double Sx = 0;
+  double Sy = 0;
+  double Sxx = 0;
+  double Sxy = 0;
 
-  return sum / goodChannels.size();
+  // all the formulas assumes weights = 1
+  S = goodChannels.size(); // all weights = 1
+
+  for(unsigned int i = 0; i < goodChannels.size(); ++i)
+    {
+      Sx += goodChannels[i];
+      Sy += phChannels[goodChannels[i]];
+      Sxx += goodChannels[i] * goodChannels[i];
+      Sxy += goodChannels[i] * phChannels[goodChannels[i]];
+    }
+
+  double Delta = S * Sxx - Sx * Sx;
+
+  res[0] = (Sxx * Sy - Sx * Sxy) / Delta; // a
+  res[1] = (S * Sxy - Sx * Sy) / Delta; // b
+
+  return;
 }
 
 void PedRun::computeNoise()
 {
   UInt_t PH[nChannels];
   double pedSubPH[nChannels];
-  Float_t commMode;
+  Float_t commMode[2] = {0};
   long int nEntries;
 
   rawEvtTree->SetBranchStatus("*", 0); // deactivate all branches
   rawEvtTree->SetBranchStatus("adcPH", 1); // activate this branch
   rawEvtTree->SetBranchAddress("adcPH", PH);
 
- TBranch* commBr = rawEvtTree->Branch("commMode", &commMode, "commMode/F"); // new branch
+ TBranch* commBr = rawEvtTree->Branch("commMode", commMode, "commMode[2]/F"); // new branch
 
   nEntries = rawEvtTree->GetEntries();
 
@@ -109,13 +127,13 @@ void PedRun::computeNoise()
       for(int iCh = 0; iCh < nChannels; ++iCh) // pedestal subtraction
 	pedSubPH[iCh] = PH[iCh] - pedestals[iCh];
 
-      commMode = CommonModeCalculation(pedSubPH);
-      commModeGr->SetPoint(iEvt, iEvt, commMode);
+      CommonModeCalculation(pedSubPH, commMode);
+      commModeGr->SetPoint(iEvt, iEvt, commMode[1]);
 
       commBr->Fill(); // fill just this branch
 
       for(unsigned int iHist = 0; iHist < noiseHist.size(); ++iHist)
-	noiseHist[iHist]->Fill(pedSubPH[goodChannels[iHist]] - commMode);
+	noiseHist[iHist]->Fill(pedSubPH[goodChannels[iHist]] - commMode[0] - goodChannels[iHist] * commMode[1]);
 
     }
 
