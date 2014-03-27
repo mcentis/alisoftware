@@ -55,16 +55,20 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   // ====================== elaborated events =================
   clustVecPtr = &clustVec;
   cookedEvtTree = new TTree("cookedEvtTree", "Elaborated data");
-  cookedEvtTree->Branch("commMode", &commMode, "commMode/F");
+  cookedEvtTree->Branch("commMode", commMode, "commMode[2]/F");
   cookedEvtTree->Branch("clustVec", "vector<cluster>", &clustVecPtr);
   cookedEvtTree->Branch("signal", signal, TString::Format("signal[%i]/F", nChannels));
 
   // ==================== plots ===============================
   chInCommMode = new TH1I("chInCommMode", "Number of channels used in common mode calculation after cuts;Number of channels;Events", 256, -0.5, 255.5);
 
-  commVsEvt = new TGraph();
-  commVsEvt->SetName("commVsEvt");
-  commVsEvt->SetTitle("Common mode vs event number");
+  commVsEvtOffset = new TGraph();
+  commVsEvtOffset->SetName("commVsEvtOffset");
+  commVsEvtOffset->SetTitle("Common mode offset vs event number");
+
+  commVsEvtSlope = new TGraph();
+  commVsEvtSlope->SetName("commVsEvtSlope");
+  commVsEvtSlope->SetTitle("Common mode slope vs event number");
 
   clusterSize = new TH1I("clusterSize", "Cluster size;Number of channels", 256, -0.5, 255.5);
   nClustEvt = new TH1I("nClustEvt", "Number of clusters per event;Number of clusters", 101, -0.5, 100.5);
@@ -155,40 +159,80 @@ void DataRun::ReadCalFile(const char* calFile)
 
 void DataRun::CommonModeCalculation(double* phChannels)
 {
-  double sum;
-  double sumDevSq;
-  double mean = 0; // put here, if there is no calculation the commMode stays at 0
-  double sigma;
+  // common mode = a + b * chNum
+  double S = 0;
+  double Sx = 0;
+  double Sy = 0;
+  double Sxx = 0;
+  double Sxy = 0;
+  double Delta = 0;
+  double a = 0;
+  double b = 0;
+  // double sig2a = 0; // sigma squared of the variables
+  // double sig2b = 0;
+  // double covab = 0; // covariance
+
+  double sigma = 0; // variance centered on the fitted line
+  double sumDevSq = 0; // sum to calculate the variance
 
   std::vector<int> chInUse = goodChannels;
   std::vector<int> chPrev; // channels used in the previous step
+  int chNum = 0;
 
   for(int iIter = 0; iIter < nCMiter; ++iIter)
     {
-      sum = 0;
-      sumDevSq = 0;
+      // put variables to 0
+      S = 0;
+      Sx = 0;
+      Sy = 0;
+      Sxx = 0;
+      Sxy = 0;
 
-      for(unsigned int iCh = 0; iCh < chInUse.size(); ++iCh) // sum for mean
-	  sum += phChannels[chInUse[iCh]];
+      // all the weights for the linear regression assumed to be 1
+      S = chInUse.size();
 
-      mean = sum / chInUse.size();
+      for(unsigned int iCh = 0; iCh < chInUse.size(); ++iCh) // sums for the cm calculation
+	{
+	  Sx += chInUse[iCh];
+	  Sy += phChannels[chInUse[iCh]];
+	  Sxx += chInUse[iCh] * chInUse[iCh];
+	  Sxy += chInUse[iCh] * phChannels[chInUse[iCh]];
+	}
 
-      for(unsigned int iCh = 0; iCh < chInUse.size(); ++iCh) // sum for rms
-	sumDevSq += pow(phChannels[chInUse[iCh]] - mean, 2);
+      Delta = S * Sxx - Sx * Sx;
+      a = (Sxx * Sy - Sx * Sxy) / Delta; // a
+      b = (S * Sxy - Sx * Sy) / Delta; // b
+      // sig2a = Sxx / Delta;
+      // sig2b = S / Delta;
+      // covab = -Sx / Delta;
+
+      // std::cout << a << "  " << b << "  " << sig2a << "  " << sig2b << "  " << covab << std::endl;
+
+      for(unsigned int iCh = 0; iCh < chInUse.size(); ++iCh) // sum for variance, calculated around the fitted line
+	sumDevSq += pow(phChannels[chInUse[iCh]] - a - b * chInUse[iCh], 2);
 
       sigma = sqrt(sumDevSq / (chInUse.size() - 1));
-      
+ 
       if(iIter < nCMiter - 1) // last iteration does not need this
 	{
 	  chPrev = chInUse;
 	  chInUse.clear();
 	  
 	  for(unsigned int iCh = 0; iCh < chPrev.size(); ++iCh) // select channels
-	    if(fabs(phChannels[chPrev[iCh]] - mean) < sigma * sigCut) chInUse.push_back(chPrev[iCh]);
+	    {
+	      chNum = chPrev[iCh];
+	      // if the distance between the ph and the estimated cm is more than sigCut times the cm uncertainty the channel is excluded
+	      // if(fabs(phChannels[chNum] - a - b * chNum) 
+	      // 	 < sigCut * sqrt(sig2a + sig2b * chNum * chNum + 2 * chNum * covab)) chInUse.push_back(chNum);
+
+	      if(fabs(phChannels[chNum] - a - b * chNum) 
+		 < sigCut * sigma) chInUse.push_back(chNum);
+	    }
 	}
     }
 
-  commMode = mean;
+  commMode[0] = a;
+  commMode[1] = b;
 
   chInCommMode->Fill(chInUse.size());
 
@@ -205,10 +249,12 @@ void DataRun::doSpecificStuff()
 
   CommonModeCalculation(pedSubPH);
 
-  commVsEvt->SetPoint(commVsEvt->GetN(), commVsEvt->GetN(), commMode);
+  int evtNum = commVsEvtOffset->GetN();
+  commVsEvtOffset->SetPoint(evtNum, evtNum, commMode[0]);
+  commVsEvtSlope->SetPoint(evtNum, evtNum, commMode[1]);
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // common mode subtraction
-    signal[goodChannels[iCh]] = pedSubPH[goodChannels[iCh]] - commMode;
+    signal[goodChannels[iCh]] = pedSubPH[goodChannels[iCh]] - commMode[0] - commMode[1] * goodChannels[iCh];
 
   FindClusters(signal);
 
@@ -285,10 +331,15 @@ void DataRun::WriteCookedTree()
 
   TCanvas* serv = new TCanvas();
 
-  commVsEvt->Draw("AP");
-  commVsEvt->GetXaxis()->SetTitle("Event number");
-  commVsEvt->GetYaxis()->SetTitle("Common mode [ADC]");
-  commVsEvt->Write();
+  commVsEvtOffset->Draw("AP");
+  commVsEvtOffset->GetXaxis()->SetTitle("Event number");
+  commVsEvtOffset->GetYaxis()->SetTitle("Offset[ADC]");
+  commVsEvtOffset->Write();
+
+  commVsEvtSlope->Draw("AP");
+  commVsEvtSlope->GetXaxis()->SetTitle("Event number");
+  commVsEvtSlope->GetYaxis()->SetTitle("Slope[ADC / Ch. number]");
+  commVsEvtSlope->Write();
 
   delete serv;
 
