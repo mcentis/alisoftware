@@ -2,10 +2,10 @@ void visualizeEventPed(int evtNum)
 {
   const int nChannels = 256;
 
-  Float_t commMode;
+  Float_t commMode[2] = 0;
   UInt_t rawPH[nChannels] = {0};
   rawEvtTree->SetBranchAddress("adcPH", rawPH);
-  rawEvtTree->SetBranchAddress("commMode", &commMode);
+  rawEvtTree->SetBranchAddress("commMode", commMode);
 
   rawEvtTree->GetEntry(evtNum);
 
@@ -24,9 +24,9 @@ void visualizeEventPed(int evtNum)
   for(int i = 0; i < nChannels; ++i)
     {
       pedSubPH[i] = rawPH[i] - ped[i];
-      if(isGood[i] == false) continue; // exlude bad channels for the next plot
+      if(isGood[i] == false) continue; // exlude bad channels for the next plots
       pedSubPHgood[i] = rawPH[i] - ped[i];
-      commMSubPH[i] = pedSubPH[i] - commMode;
+      commMSubPH[i] = pedSubPH[i] - commMode[0] - commMode[1] * i;
     }
 
   TCanvas* evtCan = new TCanvas("evtCan", "Pulse height and common mode");
@@ -37,8 +37,8 @@ void visualizeEventPed(int evtNum)
   TH1D* pedsubgoodhist = new TH1D("pedsubgoodhist", TString::Format("Pedestal subtracted pulse height good channels event %i;Channel;PH [ADC]", evtNum), 256, -0.5, 255.5);
   TH1D* commsubhist = new TH1D("commsubhist", TString::Format("Common mode subtracted pulse height event %i;Channel;PH [ADC]", evtNum), 256, -0.5, 255.5);
 
-  TF1* cm = new TF1("cm", "[0]", -0.5, 255.5);
-  cm->SetParameter(0, commMode);
+  TF1* cm = new TF1("cm", "[0] + [1] * x", -0.5, 255.5);
+  cm->SetParameters(commMode[0], commMode[1]);
   cm->SetLineColor(kRed);
 
   TH1* histos[4] = {rawhist, pedsubhist, pedsubgoodhist, commsubhist};
