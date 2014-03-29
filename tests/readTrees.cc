@@ -1,6 +1,7 @@
 
 #include "vector"
 #include "../include/clusterDef.h"
+#include "../include/constants.h"
 
 #ifdef __CINT__
 #pragma link C++ class cluster+;
@@ -41,8 +42,10 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 
   cluster clu;
   Float_t time;
+  Float_t signal[nChannels] = {0};
 
   cooked->SetBranchAddress("clustVec", &cluVecPtr);
+  cooked->SetBranchAddress("signal", signal);
   raw->SetBranchAddress("time", &time);
 
   // deactivate all branches
@@ -50,6 +53,7 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   raw->SetBranchStatus("*", 0);
   //activate the interesting ones
   cooked->SetBranchStatus("clustVec*", 1);
+  cooked->SetBranchStatus("signal", 1);
   raw->SetBranchStatus("time", 1);
 
   TH2D* signalTime = new TH2D("signalTime", "Cluster charge vs time;Time [ns];Cluster charge [ADC]", 60, 0, 120, 1024, -511.5, 511.5);
@@ -61,6 +65,9 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   TH1D* posStrAdc = new TH1D("posStrAdc", "Cluster position in strip number;Position [Strip number];Entries", 256, -0.5, 255.5);
   TH1D* posmmAdc = new TH1D("posmmAdc", "Cluster position in mm;Position [mm];Entries", 1500, 0, 30);
   TH1I* clustSize = new TH1I("clustSize", "Cluster size in the time cut;Size [Stips];Entries", 21, -0.5, 20.5);
+
+  TH1D* noiseTimeCut = new TH1D("noiseTimeCut", "Strip charge not in clusters in the time cut;Charge [ADC];Entries", 400, -200, 200);
+  bool stripInCluster[nChannels] = {0}; // true is a strip  belongs to a cluster
 
   for(long int i = 0; i < nEntries; i++)
     {
@@ -86,6 +93,22 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	  posStrAdc->Fill(clu.posStrAdc);
 	  posmmAdc->Fill(clu.posmmAdc);
 	}
+
+      if(timeCut1 < time && time < timeCut2) // part to compute the noise in the time cut
+	    {
+	      for(int iCh = 0; iCh < nChannels; ++iCh) stripInCluster[iCh] = false;
+
+	      for(int iCl = 0; iCl < nClust; ++iCl)
+		{
+		  clu = cluVecPtr->at(iCl);
+
+		  for(unsigned int iSt = 0; iSt < clu.strips.size(); ++ iSt) stripInCluster[clu.strips.at(iSt)] = true; // select the strips in cluster
+		}
+
+	      for(int iCh = 0; iCh < nChannels; ++iCh)
+		if(signal[iCh] != 0 && stripInCluster[iCh] == false) noiseTimeCut->Fill(signal[iCh]); // fill the histo with signal not in clusters
+
+	    }
     }
 
   TProfile* timeProfile = signalTime->ProfileX("timeProfile");
@@ -134,6 +157,10 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   TCanvas* can4 = new TCanvas("cluSize");
   can4->SetTitle("Cluster Size");
   clustSize->Draw();
+
+  TCanvas* can5 = new TCanvas("noiseTime");
+  can5->SetTitle("Noise in Time cut");
+  noiseTimeCut->Draw();
 
   return;
 }
