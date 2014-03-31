@@ -34,6 +34,7 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   snrNeigh = atof(conf->GetValue("snrNeigh").c_str());
 
   polarity = atoi(conf->GetValue("polarity").c_str());
+  polarity /= abs(polarity); // make the polarity be a unit with sign
 
   pitch = atof(conf->GetValue("pitch").c_str());
 
@@ -324,7 +325,9 @@ void DataRun::FindClusters(Float_t* phChannels)
     {
       chNum = goodChannels[iCh]; // take a good channel
 
-      if(phChannels[chNum] / fabs(phChannels[chNum]) == polarity / fabs(polarity) &&
+      if(phChannels[chNum - 1] == 0 || phChannels[chNum + 1] == 0) continue; // the strips confining bad channels can not be seeds
+
+      if(phChannels[chNum] / fabs(phChannels[chNum]) == polarity &&
 	 fabs(phChannels[chNum] / noise[chNum]) > snrSeed) // seeds must have the right polarity and pass the seed cut
 	{
 	  seeds.push_back(chNum);
@@ -358,7 +361,8 @@ void DataRun::FindClusters(Float_t* phChannels)
 	      if(chNum < 0 || noise[chNum] == -1) // channel out of margin or it is a bad channel
 		growLeft = false;
 	      else
-		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && usedStrip[chNum] == false) // check for snr and that the strip has not already been used
+		if(phChannels[chNum] / fabs(phChannels[chNum]) == polarity && // right polarity also imposed for neighbors
+		   fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && usedStrip[chNum] == false) // check for snr and that the strip has not already been used
 		  {
 		    if(iNgh == 1 || isSeed[chNum] == false) // if the first neighbour of the seed is another seed add it, otherwise don't
 		      {
@@ -376,7 +380,8 @@ void DataRun::FindClusters(Float_t* phChannels)
 	      if(chNum >= nChannels || noise[chNum] == -1) // channel out of margin or it is a bad channel
 		growRight = false;
 	      else
-		if(fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && usedStrip[chNum] == false) // check for snr and that the strip has not already been used
+		if(phChannels[chNum] / fabs(phChannels[chNum]) == polarity && // right polarity also imposed for neighbors
+		   fabs(phChannels[chNum] / noise[chNum]) > snrNeigh && usedStrip[chNum] == false) // check for snr and that the strip has not already been used
 		  {
 		    if(iNgh == 1 || isSeed[chNum] == false) // if the first neighbour of the seed is another seed add it, otherwise don't
 		      {

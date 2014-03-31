@@ -24,7 +24,7 @@ void etaDistr()
   return;
 }
 
-void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  const char* borderStripsFile = "")
+void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  int polarity = 1, const char* borderStripsFile = "")
 {
   TFile* file = TFile::Open(inFile, "READ");
 
@@ -45,6 +45,8 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
       brdCan->SetTitle("Border strips");
       bordStr->Draw("A*");
     }
+
+  polarity = polarity / abs(polarity); // make the polarity a unit with sign
 
   bool isBorder[nChannels] = {0}; // true if the strip is a border strip
   if(bordList)
@@ -152,28 +154,45 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  co
 	      clusterShapePH->Fill(clu.strips.at(iSt) - seedNum, clu.adcStrips.at(iSt));
 	    }
 
-	  if(clu.strips.size() != 2) continue; // select 2 strips clusters to determine eta
-
-	  //determination of left and right strip
-	  if(clu.strips.at(0) < clu.strips.at(1))
-	    {
-	      sL = clu.adcStrips.at(0);
-	      sR = clu.adcStrips.at(1);
-	    }
-	  else
-	    if(clu.strips.at(0) > clu.strips.at(1))
+	  // eta defined just by the seed strip, the neighbor with bigger charge belongs to the pair
+	  if(signal[seedNum + 1] && signal[seedNum - 1]) // exclude bad channels
+	    if(signal[seedNum + 1] / fabs(signal[seedNum + 1]) == polarity && signal[seedNum - 1] / fabs(signal[seedNum - 1]) == polarity) // exclude channels with a polarity different that expected
 	      {
-		sR = clu.adcStrips.at(0);
-		sL = clu.adcStrips.at(1);
-	      }
-	    else
-	      {
-		std::cout << "Error!! Strip numbers: " << clu.strips.at(0) << " , "  << clu.strips.at(1) << "   Total strips in the cluster: " << clu.strips.size() << std::endl;
-		continue;
+		if(fabs(signal[seedNum + 1]) > fabs(signal[seedNum - 1]))
+		  {
+		    sL = seedPH;
+		    sR = signal[seedNum + 1];
+		  }
+		else
+		  {
+		    sR = seedPH;
+		    sL = signal[seedNum - 1];
+		  }
+		etaDis->Fill(sR / (sR + sL));
+		diffVsSeed->Fill(seedPH, sL - sR);
 	      }
 
-	  etaDis->Fill(sR / (sR + sL));
-	  diffVsSeed->Fill(seedPH, sL - sR);
+	  // if(clu.strips.size() != 2) continue; // select 2 strips clusters to determine eta
+
+	  // //determination of left and right strip
+	  // if(clu.strips.at(0) < clu.strips.at(1))
+	  //   {
+	  //     sL = clu.adcStrips.at(0);
+	  //     sR = clu.adcStrips.at(1);
+	  //   }
+	  // else
+	  //   if(clu.strips.at(0) > clu.strips.at(1))
+	  //     {
+	  // 	sR = clu.adcStrips.at(0);
+	  // 	sL = clu.adcStrips.at(1);
+	  //     }
+	  //   else
+	  //     {
+	  // 	std::cout << "Error!! Strip numbers: " << clu.strips.at(0) << " , "  << clu.strips.at(1) << "   Total strips in the cluster: " << clu.strips.size() << std::endl;
+	  // 	continue;
+	  //     }
+
+	  // diffVsSeed->Fill(seedPH, sL - sR);
 	}
     }
 
