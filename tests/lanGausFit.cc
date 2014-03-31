@@ -234,11 +234,41 @@ void lanGausFit(TH1* inHist, double fitR1, double fitR2, double gausSig = 1) {
    fr[0]=fitR1;
    fr[1]=fitR2;
 
+   // find mpv and integral start value
+   int binMin; // max and min bin number (corresponding to the range)
+   int binMax;
+   double intStart = 0; // start value of the integral
+   double mpvStart = 0; // start value of the mpv
+
+   double binW = inHist->GetXaxis()->GetBinWidth(5); // bin width from a random bin
+   double xMin = inHist->GetXaxis()->GetXmin();
+   binMin = 1 + (fitR1 - xMin) / binW;
+   binMax = 1 + (fitR2 - xMin) / binW;
+
+   double binCont;
+   double yMax = 0; // variable used to look for the maximum (mpv start)
+   for(int iBn = binMin; iBn < binMax; ++iBn)
+     {
+       binCont = inHist->GetBinContent(iBn);
+       intStart += binCont;
+       if(binCont > yMax) 
+	 {
+	   yMax = binCont;
+	   mpvStart = inHist->GetXaxis()->GetBinCenter(iBn);
+	 }
+     }
+
    // starting parameters
    sv[0] = 5;//landau width
-   sv[1] = inHist->GetXaxis()->GetBinCenter(inHist->GetMaximumBin()); // mpv landau
-   sv[2] = inHist->Integral(); // integral
+   sv[1] = mpvStart; // mpv landau
+   sv[2] = intStart; // integral
    sv[3] = gausSig + gausSig * 0.5; // gaussian width
+
+   std::cout << "Starting parameters" << std::endl;
+   std::cout << "Landau width " << sv[0] << std::endl;
+   std::cout << "MPV          " << sv[1] << std::endl;
+   std::cout << "Area         " << sv[2] << std::endl;
+   std::cout << "Gaus sigma   " << sv[0] << std::endl;
 
    // parameter limits
    pllo[0]=0.01; pllo[1]=0.5; pllo[2]=1.0; pllo[3]=gausSig;
