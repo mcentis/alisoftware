@@ -1,0 +1,3 @@
+# ignore files generated when compiling macros
+*.d
+*.so
