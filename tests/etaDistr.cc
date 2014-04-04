@@ -89,10 +89,13 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
   TH1D* leftRatio = new TH1D("leftRatio", "Signal from the left neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
   TH1D* rightRatio = new TH1D("rightRatio", "Signal from the right neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
 
-  TH2D* diffVsSeed = new TH2D("diffVsSeed", "PH(L) - PH(R) vs PH(Seed), 2 strips clusters;PH(Seed) [ADC];PH(L) - PH(R) [ADC]", 400, -200, 200, 200, -100, 100);
+  TH2D* diffVsSeed = new TH2D("diffVsSeed", "PH(L) - PH(R) vs PH(Seed), 2 strips;PH(Seed) [ADC];PH(L) - PH(R) [ADC]", 400, -200, 200, 200, -100, 100);
 
   TH1D* neighNoiseL = new TH1D("neighNoiseL", "Left neighbour of a single strip cluster;Charge [ADC];Entries", 100, -50, 50);
   TH1D* neighNoiseR = new TH1D("neighNoiseR", "Right neighbour of a single strip cluster;Charge [ADC];Entries", 100, -50, 50);
+
+  TH2D* asymm = new TH2D("asymm", "2 strips charge vs. asymmetry;(PH(L) - PH(R)) / (PH(L) + PH(R));PH(L) + PH(R) [ADC]", 200, -1.5, 1.5, 400, -200, 200);
+  TH2D* totVseta = new TH2D("totVseta", "2 strips charge vs. #eta;#eta;PH(L) + PH(R) [ADC]", 120, -0.5, 1.5, 400, -200, 200);
 
   long int nEntries = cooked->GetEntries();
   int nClust;
@@ -170,6 +173,8 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
 		  }
 		etaDis->Fill(sR / (sR + sL));
 		diffVsSeed->Fill(seedPH, sL - sR);
+		asymm->Fill((sL - sR) / (sL + sR), sL + sR);
+		totVseta->Fill(sR / (sR + sL), sR + sL);
 	      }
 
 	  // if(clu.strips.size() != 2) continue; // select 2 strips clusters to determine eta
@@ -278,6 +283,14 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
   neighNoiseL->Draw();
   neiNoCan->cd(2);
   neighNoiseR->Draw();
+
+  TCanvas* asCan = new TCanvas("asCan", "Asymmetry");
+  asCan->cd();
+  asymm->Draw("COLZ");
+
+  TCanvas* totCan = new TCanvas("totCan", "Total charge vs eta");
+  totCan->cd();
+  totVseta->Draw("COLZ");
 
   return;
 }
