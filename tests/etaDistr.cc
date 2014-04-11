@@ -86,6 +86,9 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
   TH1D* d1L = new TH1D("d1L", "Left neighbour of the seed strip (if included in the cluster);Charge [ADC];Entries", 400, -200, 200);
   TH1D* d1R = new TH1D("d1R", "Right neighbour of the seed strip (if included in the cluster);Charge [ADC];Entries", 400, -200, 200);
 
+  TH1D* seedDeposit = new TH1D("seedDeposit", "Energy deposit in the seed strip;Cluster charge [ADC]", 1024, -0.5, 1023.5);
+
+
   TH1D* leftRatio = new TH1D("leftRatio", "Signal from the left neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
   TH1D* rightRatio = new TH1D("rightRatio", "Signal from the right neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
 
@@ -139,6 +142,7 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
 	      }
 	    
 	  seed->Fill(seedPH); // fill seed charge graph
+	  seedDeposit->Fill(fabs(seedPH));
 
 	  for(unsigned int iSt = 0; iSt < clu.strips.size(); ++iSt) // fill the graphs
 	    {
@@ -291,6 +295,10 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
   TCanvas* totCan = new TCanvas("totCan", "Total charge vs eta");
   totCan->cd();
   totVseta->Draw("COLZ");
+
+  TCanvas* seedCan = new TCanvas("seedCan", "Seed deposit");
+  seedCan->cd();
+  seedDeposit->Draw();
 
   return;
 }
