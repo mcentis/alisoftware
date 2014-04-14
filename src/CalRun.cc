@@ -2,6 +2,8 @@
 
 #include "ConfigFileReader.hh"
 
+#include "fstream"
+#include "sstream"
 #include "iostream"
 #include "stdlib.h"
 
@@ -17,6 +19,8 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
       calHistos[i] = NULL;
       calProfiles[i] = NULL;
     }
+
+  ReadPedFile(conf->GetValue("pedNoiseFile").c_str()); // read pedestal file
 
   histoDir = outFile->mkdir("Histograms");
   profileDir = outFile->mkdir("Profiles");
@@ -75,7 +79,7 @@ void CalRun::createHistos()
     {
       sprintf(name, "calHistCh_%d", i);
       sprintf(title, "Calibration channel %d;Injected charge [ALI e^{-}];Measured pulse height [ADC]", i);
-      calHistos[i] = new TH2F(name, title, nSteps + 1, -endCharge - stepSize / 2., endCharge + stepSize / 2., 1024, -0.5, 1023.5);
+      calHistos[i] = new TH2F(name, title, nSteps + 1, -endCharge - stepSize / 2., endCharge + stepSize / 2., 1024, -511.5, 511.5);
     }
 
   return;
@@ -89,13 +93,13 @@ void CalRun::doSpecificStuff()
     {
       if(iSample % 2) // every event the polarity of the charge is inverted
       {
-    	if(i % 2) calHistos[i]->Fill(-injCharge, adcPH[i]); // channels with odd channel number get inverted
-    	else calHistos[i]->Fill(injCharge, adcPH[i]);
+    	if(i % 2) calHistos[i]->Fill(injCharge, adcPH[i] - pedestals[i]);
+    	else calHistos[i]->Fill(-injCharge, adcPH[i] - pedestals[i]); // channels with even channel number get inverted
       }
     else
       {
-    	if(i % 2) calHistos[i]->Fill(injCharge, adcPH[i]);
-    	else calHistos[i]->Fill(-injCharge, adcPH[i]); // channels with even channel number get inverted
+    	if(i % 2) calHistos[i]->Fill(-injCharge, adcPH[i] - pedestals[i]); // channels with odd channel number get inverted
+    	else calHistos[i]->Fill(injCharge, adcPH[i] - pedestals[i]);
       }
     }
 
@@ -143,6 +147,44 @@ void CalRun::writeProfiles()
   profileDir->cd();
   for(int i = 0; i < nChannels; ++i)
     calProfiles[i]->Write();
+
+  return;
+}
+
+void CalRun::ReadPedFile(const char* pedFile)
+{
+  ifstream pedStr;
+  pedStr.open(pedFile, std::ifstream::in);
+
+  if(pedStr.is_open() == false)
+    {
+      std::cout << "[CalRun::ReadPedFile] Impossile to open " << pedFile << " all pedestals and noises set to -1" << std::endl;
+      for(int i = 0; i < nChannels; ++i)
+	{
+	  pedestals[i] = -1;
+	  noise[i] = -1;
+	}
+
+      return;
+    }
+
+  std::string line;
+  std::istringstream lineStr;
+
+  int chNum;
+
+  while(pedStr.good())
+    {
+      std::getline(pedStr, line);
+
+      lineStr.clear();
+      lineStr.str(line);
+
+      lineStr >> chNum;
+      lineStr >> pedestals[chNum] >> noise[chNum];
+    }
+
+  pedStr.close();
 
   return;
 }

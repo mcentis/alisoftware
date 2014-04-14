@@ -28,6 +28,10 @@ class CalRun : public BinaryData
 
   int injCharge; // value of charge injected in one test
 
+  void ReadPedFile(const char* pedFile);
+  Float_t pedestals[nChannels];
+  Float_t noise[nChannels];
+
   void doSpecificStuff();
   void analyseRunHeader();
 
