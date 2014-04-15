@@ -44,6 +44,8 @@ BinaryData::BinaryData(const char* InFileName, ConfigFileReader* Conf)
 
   // ============= define the tree ======================
   rawEvtTree = new TTree("rawEvtTree", "Raw data events");
+  rawEvtTree->Branch("injCharge", &injCharge, "injCharge/F");
+  rawEvtTree->Branch("delay", &delay, "delay/F");
   rawEvtTree->Branch("time", &time, "time/F");
   rawEvtTree->Branch("adcPH", adcPH, TString::Format("adcPH[%i]/i", nChannels)); // trick with the string to have the right array length
   rawEvtTree->Branch("temp", &temp, "temp/F");
@@ -218,6 +220,10 @@ void BinaryData::ReadFile()
 	    }
 
 	  fileStr.read((char*) &scanValue, sizeDouble);
+	  injCharge = (double) (int(scanValue) & 0xff);
+	  injCharge *= 1024;
+	  delay = (double) (int(scanValue) >> 16);
+
 	  fileStr.read((char*) &rawTime, sizeUint32);
 	  fileStr.read((char*) &rawTemp, sizeUint16);
 

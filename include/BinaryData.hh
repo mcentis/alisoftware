@@ -44,8 +44,11 @@ protected:
   TFile* outFile;
   TTree* rawEvtTree;
 
-  Float_t time;
-  Float_t temp;
+  Float_t injCharge; // charge injection for calibration
+  Float_t delay; // delay for laser delay scan
+
+  Float_t time; // event time (phase between trigger and clock)
+  Float_t temp; // chip temperature
   UInt_t adcPH[nChannels];
 
   TH2I* allEvents;

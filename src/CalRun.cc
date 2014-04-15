@@ -33,7 +33,7 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
   profileDir = outFile->mkdir("Profiles");
   outFile->cd();
 
-  redChi2Cal = new TH1F("redChi2Cal", "Reduced #chi^2 of the calibrations fit;#chi^2 / NDF;Entries", 30, 0, 30);
+  redChi2Cal = new TH1F("redChi2Cal", "Reduced #chi^{2} of the calibrations fit;#chi^{2} / NDF;Entries", 30, 0, 30);
 
   iSample = 1;
   iStep = 1;
@@ -165,7 +165,7 @@ void CalRun::fitCalibrations()
 	    fitFunc->SetLineColor(kRed);
 	  }
 
-	calProfiles[iCh]->Fit(fitFunc, "QR+");
+	calProfiles[iCh]->Fit(fitFunc, "QR+"); // the + is to store both the fits in the profile
 
 	fitFunc->GetParameters(parameters[iCh][pol]);
 
