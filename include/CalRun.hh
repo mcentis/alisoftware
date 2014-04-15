@@ -13,7 +13,7 @@ class CalRun : public BinaryData
 {
   TDirectory* histoDir;
   TDirectory* profileDir;
-  double parameters[nChannels][nParameters];
+  Double_t parameters[nChannels][2][nParameters]; // the [2] dimension is there since there is a calibration for positive (1) and negative (0) values
   TH2F* calHistos[nChannels];
   TProfile* calProfiles[nChannels];
 
@@ -32,12 +32,19 @@ class CalRun : public BinaryData
   Float_t pedestals[nChannels];
   Float_t noise[nChannels];
 
+  void fitCalibrations();
+  float startFit;
+  float endFit;
+
+  TH1F* redChi2Cal;
+
   void doSpecificStuff();
   void analyseRunHeader();
 
   void createHistos();
   void writeHistos();
   void writeProfiles();
+  void writeParList();
 
 public:
   CalRun(const char* binFile, ConfigFileReader* Conf);

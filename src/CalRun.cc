@@ -7,12 +7,16 @@
 #include "iostream"
 #include "stdlib.h"
 
+#include "TF1.h"
+#include "TCanvas.h"
+
 CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
   BinaryData(binFile, Conf)
 {
   for(int i = 0; i < nChannels; ++i)
-    for(int j = 0; j < nParameters; ++j)
-      parameters[i][j] = 0;
+    for(int pol = 0; pol < 2; ++pol)
+      for(int j = 0; j < nParameters; ++j)
+	parameters[i][pol][j] = 0;
 
   for(int i = 0; i < nChannels; ++i)
     {
@@ -22,9 +26,14 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
 
   ReadPedFile(conf->GetValue("pedNoiseFile").c_str()); // read pedestal file
 
+  startFit = atof(conf->GetValue("fitStart").c_str());
+  endFit = atof(conf->GetValue("fitEnd").c_str());
+
   histoDir = outFile->mkdir("Histograms");
   profileDir = outFile->mkdir("Profiles");
   outFile->cd();
+
+  redChi2Cal = new TH1F("redChi2Cal", "Reduced #chi^2 of the calibrations fit;#chi^2 / NDF;Entries", 30, 0, 30);
 
   iSample = 1;
   iStep = 1;
@@ -127,8 +136,45 @@ void CalRun::AnalyseData()
       calProfiles[i]->SetTitle(title);
     }
 
+  fitCalibrations();
+
   writeHistos();
   writeProfiles();
+
+  writeParList();
+
+  return;
+}
+
+void CalRun::fitCalibrations()
+{
+  TF1* fitFunc;
+  TCanvas* servCan = new TCanvas();
+
+  for(int iCh = 0; iCh < nChannels; iCh++)
+    for(int pol = 0; pol < 2; ++pol)
+      {
+	if(pol == 0) // negative polarity
+	  {
+	    fitFunc = new TF1("fitFuncNeg", fitCal, -endFit, -startFit);
+	    fitFunc->SetLineColor(kBlue);
+	  }
+	else // positive polarity
+	  {
+	    fitFunc = new TF1("fitFuncPos", fitCal, startFit, endFit);
+	    fitFunc->SetLineColor(kRed);
+	  }
+
+	calProfiles[iCh]->Fit(fitFunc, "QR+");
+
+	fitFunc->GetParameters(parameters[iCh][pol]);
+
+	redChi2Cal->Fill(fitFunc->GetChisquare() / fitFunc->GetNDF());
+
+	delete fitFunc;
+      }
+
+  delete servCan;
 
   return;
 }
@@ -138,6 +184,9 @@ void CalRun::writeHistos()
   histoDir->cd();
   for(int i = 0; i < nChannels; ++i)
     calHistos[i]->Write();
+
+  outFile->cd();
+  redChi2Cal->Write();
 
   return;
 }
@@ -185,6 +234,27 @@ void CalRun::ReadPedFile(const char* pedFile)
     }
 
   pedStr.close();
+
+  return;
+}
+
+void CalRun::writeParList()
+{
+  char fileName[300];
+  sprintf(fileName, "%s/CalPar%06d.list", outFilePath.c_str(), runNumber);
+  std::ofstream parList;
+  parList.open(fileName);
+
+  for(int iCh = 0; iCh < nChannels; ++iCh)
+    for(int pol = 0; pol < 2; ++pol)
+      {
+	parList << iCh << '\t' << pol;
+	for(int iPar = 0; iPar < nParameters; ++iPar) parList <<'\t' << parameters[iCh][pol][iPar];
+
+	parList << '\n';
+      }
+
+  parList.close();
 
   return;
 }
