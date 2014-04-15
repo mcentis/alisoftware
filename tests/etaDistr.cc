@@ -88,7 +88,6 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
 
   TH1D* seedDeposit = new TH1D("seedDeposit", "Energy deposit in the seed strip;Cluster charge [ADC]", 1024, -0.5, 1023.5);
 
-
   TH1D* leftRatio = new TH1D("leftRatio", "Signal from the left neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
   TH1D* rightRatio = new TH1D("rightRatio", "Signal from the right neighbour of the seed strip divided by the seed signal;Charge ratio;Entries", 100, -1.25, 1.25);
 
@@ -159,6 +158,17 @@ void etaDistr(const char* inFile,double timeCut1 = 0, double timeCut2 = 115,  in
 		}
 
 	      clusterShapePH->Fill(clu.strips.at(iSt) - seedNum, clu.adcStrips.at(iSt));
+	    }
+
+	  seedPH = 0; // redefine the seed to be the strip with highest ph with the right polarity
+	  for(int iCh = 1; iCh < nChannels - 1; ++iCh)
+	    {
+	  if(signal[iCh + 1] && signal[iCh - 1]) // exclude bad channels
+	    if(signal[iCh] / fabs(signal[iCh]) == polarity && fabs(signal[iCh]) > fabs(seedPH))
+	      {
+		seedPH = signal[iCh];
+		seedNum = iCh;
+	      }
 	    }
 
 	  // eta defined just by the seed strip, the neighbor with bigger charge belongs to the pair
