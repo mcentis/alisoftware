@@ -67,6 +67,8 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   commVsEvt->SetName("commVsEvt");
   commVsEvt->SetTitle("Common mode vs event number");
 
+  commModeDistr = new TH1F("commModeDistr", "Distribution of the common mode;Common mode [ADC];Entries", 1000, -500, 500);
+
   clusterSize = new TH1I("clusterSize", "Cluster size;Number of channels", 256, -0.5, 255.5);
   nClustEvt = new TH1I("nClustEvt", "Number of clusters per event;Number of clusters", 101, -0.5, 100.5);
 
@@ -207,6 +209,7 @@ void DataRun::doSpecificStuff()
   CommonModeCalculation(pedSubPH);
 
   commVsEvt->SetPoint(commVsEvt->GetN(), commVsEvt->GetN(), commMode);
+  commModeDistr->Fill(commMode);
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // common mode subtraction
     signal[goodChannels[iCh]] = pedSubPH[goodChannels[iCh]] - commMode;
@@ -292,6 +295,8 @@ void DataRun::WriteCookedTree()
   commVsEvt->Write();
 
   delete serv;
+
+  commModeDistr->Write();
 
   clusterSize->Write();
 

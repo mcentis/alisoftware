@@ -64,6 +64,8 @@ PedRun::PedRun(const char* binFile, ConfigFileReader* Conf):
   commModeGr = new TGraph();
   commModeGr->SetName("commModeGr");
   commModeGr->SetTitle("Common mode vs. event");
+
+  commModeDistr = new TH1F("commModeDistr", "Distribution of the common mode;Common mode [ADC];Entries", 1000, -500, 500);
 }
 
 PedRun::~PedRun()
@@ -111,6 +113,7 @@ void PedRun::computeNoise()
 
       commMode = CommonModeCalculation(pedSubPH);
       commModeGr->SetPoint(iEvt, iEvt, commMode);
+      commModeDistr->Fill(commMode);
 
       commBr->Fill(); // fill just this branch
 
@@ -233,6 +236,8 @@ void PedRun::writeHistos()
 
   redChi2Ped->Write();
   redChi2Noise->Write();
+
+  commModeDistr->Write();
 
   return;
 }

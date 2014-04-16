@@ -28,6 +28,7 @@ class PedRun : public BinaryData
   void computeNoise();
   double CommonModeCalculation(double* phChannels); // this takes the pedestal subtracted ph, it is assumed that no signal is present
   TGraph* commModeGr;
+  TH1F* commModeDistr;
   void writePedList();
 
   void doSpecificStuff();
