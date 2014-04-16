@@ -36,7 +36,7 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
   redChi2Cal = new TH1F("redChi2Cal", "Reduced #chi^{2} of the calibrations fit;#chi^{2} / NDF;Entries", 30, 0, 30);
 
   iSample = 1;
-  iStep = 1;
+  // iStep = 1;
 }
 
 CalRun::~CalRun()
@@ -96,7 +96,7 @@ void CalRun::createHistos()
 
 void CalRun::doSpecificStuff()
 {
-  injCharge = iStep * stepSize;
+  // charge = iStep * stepSize;
 
   for(int i = 0; i < nChannels; ++i)
     {
@@ -112,10 +112,14 @@ void CalRun::doSpecificStuff()
       }
     }
 
+
   if(iSample == nSamples * 2) // nSamples for each polarity
     {
+
+      std::cout << injCharge << std::endl;
+
       iSample = 0;
-      iStep++;
+      // iStep++;
     }
 
   ++iSample;

@@ -24,9 +24,9 @@ class CalRun : public BinaryData
 
   // counters to associate the measured charge to the right injection
   int iSample;
-  int iStep;
+  // int iStep;
 
-  int injCharge; // value of charge injected in one test
+  // int charge; // value of charge injected in one test
 
   void ReadPedFile(const char* pedFile);
   Float_t pedestals[nChannels];
