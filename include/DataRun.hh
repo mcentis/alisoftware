@@ -9,6 +9,7 @@ class TH1I;
 class TProfile;
 class TH2D;
 class TGraph;
+class TF1;
 
 class DataRun : public BinaryData
 {
@@ -20,7 +21,8 @@ class DataRun : public BinaryData
   Float_t noise[nChannels];
 
   void ReadCalFile(const char* calFile);
-  double calibrations[nChannels][nParameters];
+  Double_t calibrations[nChannels][2][nParameters]; // 2 polarities
+  TF1* toAliE; // function to convert the adc info to alibava electrons
 
   void CommonModeCalculation(double* phChannels); // this takes the pedestal subtracted ph, it is assumed that no signal is present
   void FindClusters(Float_t* phChannels); // this takes pedestal and common mode subtracted ph, the non used channels ph set to 0

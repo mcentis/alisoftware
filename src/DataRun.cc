@@ -9,6 +9,7 @@
 
 #include "TString.h"
 #include "TH1I.h"
+#include "TF1.h"
 #include "TProfile.h"
 #include "TH2D.h"
 #include "TGraph.h"
@@ -24,8 +25,11 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
     }
 
   for(int iCh = 0; iCh < nChannels; ++iCh)
-    for(int iPar = 0; iPar < nParameters; ++iPar)
-      calibrations[iCh][iPar] = 0;
+    for(int pol = 0; pol < 2; pol++)
+      for(int iPar = 0; iPar < nParameters; ++iPar)
+	calibrations[iCh][pol][iPar] = 0;
+
+  toAliE = new TF1("toAliE", convertToe);
 
   sigCut = atof(conf->GetValue("sigCut").c_str());
   nCMiter = atoi(conf->GetValue("nCMiter").c_str());
@@ -44,7 +48,7 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   chPropTree = new TTree("chPropTree", "Channel properties");
   chPropTree->Branch("pedestals", pedestals, TString::Format("pedestals[%i]/F", nChannels)); // trick with the tstring to adjust the lenght of the array
   chPropTree->Branch("noise", noise, TString::Format("noise[%i]/F", nChannels));
-  chPropTree->Branch("calibrations", calibrations, TString::Format("calibrations[%i][%i]/F", nChannels, nParameters));
+  chPropTree->Branch("calibrations", calibrations, TString::Format("calibrations[%i][2][%i]/D", nChannels, nParameters));
 
   ReadPedFile(conf->GetValue("pedNoiseFile").c_str()); // read pedestal file
   ReadCalFile(conf->GetValue("calFile").c_str()); // read calibration file
@@ -127,8 +131,9 @@ void DataRun::ReadCalFile(const char* calFile)
     {
       std::cout << "[DataRun::ReadcalFile] Impossile to open " << calFile << " all parameters set to 0" << std::endl;
       for(int iCh = 0; iCh < nChannels; ++iCh)
-	for(int iPar = 0; iPar < nParameters; ++iPar)
-	  calibrations[iCh][iPar] = 0;
+	for(int pol = 0; pol < 2; pol++)
+	  for(int iPar = 0; iPar < nParameters; ++iPar)
+	    calibrations[iCh][pol][iPar] = 0;
 
       return;
     }
@@ -137,6 +142,7 @@ void DataRun::ReadCalFile(const char* calFile)
   std::istringstream lineStr;
 
   int chNum;
+  int pol;
 
   while(calStr.good())
     {
@@ -145,10 +151,10 @@ void DataRun::ReadCalFile(const char* calFile)
       lineStr.clear();
       lineStr.str(line);
 
-      lineStr >> chNum;
+      lineStr >> chNum >> pol;
 
 	for(int iPar = 0; iPar < nParameters; ++iPar)
-	  lineStr >> calibrations[chNum][iPar];
+	  lineStr >> calibrations[chNum][pol][iPar];
     }
 
   calStr.close();
@@ -309,6 +315,15 @@ void DataRun::AddStrip(cluster* clu, Float_t* phArray, int stripNum)
   clu->strips.push_back(stripNum);
   clu->adcStrips.push_back(phArray[stripNum]);
 
+  if(phArray[stripNum] > 0) // positive signal
+    toAliE->SetParameters(calibrations[stripNum][1]);
+  else
+    toAliE->SetParameters(calibrations[stripNum][0]);
+
+  double charge = toAliE->Eval(phArray[stripNum]);
+  clu->qTot += charge;
+  clu->qStrips.push_back(charge);
+
   return;
 }
 
@@ -414,17 +429,26 @@ void DataRun::FindClusters(Float_t* phChannels)
 
 void DataRun::FindClusterPos(cluster* clu)
 {
-  double sumPos = 0;
+  double sumPosADC = 0;
   double sumADC = 0;
+
+  double sumPosQ = 0;
+  double sumQ = 0;
 
   for(unsigned int iStr = 0; iStr < clu->strips.size(); ++iStr)
     {
-      sumPos += clu->strips.at(iStr) * fabs(clu->adcStrips.at(iStr));
+      sumPosADC += clu->strips.at(iStr) * fabs(clu->adcStrips.at(iStr));
       sumADC += fabs(clu->adcStrips.at(iStr));
+
+      sumPosQ += clu->strips.at(iStr) * fabs(clu->qStrips.at(iStr));
+      sumQ += fabs(clu->qStrips.at(iStr));
     }
 
-  clu->posStrAdc = sumPos / sumADC;
+  clu->posStrAdc = sumPosADC / sumADC;
   clu->posmmAdc = clu->posStrAdc * pitch;
+
+  clu->posStrQ = sumPosQ / sumQ;
+  clu->posmmQ = clu->posStrQ * pitch;
 
   return;
 }
