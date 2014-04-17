@@ -29,6 +29,8 @@ class PedRun : public BinaryData
   void CommonModeCalculation(double* phChannels, Float_t* res); // this takes the pedestal subtracted ph, it is assumed that no signal is present, cm with slope!!
   TGraph* commModeGrSlope;
   TGraph* commModeGrOffset;
+  TH1F* commModeSlopeDistr;
+  TH1F* commModeOffsetDistr;
   void writePedList();
 
   void doSpecificStuff();

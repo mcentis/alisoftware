@@ -68,6 +68,9 @@ PedRun::PedRun(const char* binFile, ConfigFileReader* Conf):
   commModeGrOffset = new TGraph();
   commModeGrOffset->SetName("commModeGrOffset");
   commModeGrOffset->SetTitle("Offset of the common mode vs. event");
+
+  commModeSlopeDistr = new TH1F("commModeSlopeDistr", "Common mode slope distribution;Slope [ADC / Ch.];Entries", 200, -1, 1);
+  commModeOffsetDistr = new TH1F("commModeOffsetDistr", "Common mode offset distribution;Offset [ADC];Entries", 1000, -500, 500);
 }
 
 PedRun::~PedRun()
@@ -134,6 +137,8 @@ void PedRun::computeNoise()
       CommonModeCalculation(pedSubPH, commMode);
       commModeGrSlope->SetPoint(iEvt, iEvt, commMode[1]);
       commModeGrOffset->SetPoint(iEvt, iEvt, commMode[0]);
+      commModeSlopeDistr->Fill(commMode[1]);
+      commModeOffsetDistr->Fill(commMode[0]);
 
       commBr->Fill(); // fill just this branch
 
@@ -261,6 +266,9 @@ void PedRun::writeHistos()
 
   redChi2Ped->Write();
   redChi2Noise->Write();
+
+  commModeSlopeDistr->Write();
+  commModeOffsetDistr->Write();
 
   return;
 }

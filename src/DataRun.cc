@@ -70,6 +70,9 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   commVsEvtSlope->SetName("commVsEvtSlope");
   commVsEvtSlope->SetTitle("Common mode slope vs event number");
 
+  commModeSlopeDistr = new TH1F("commModeSlopeDistr", "Common mode slope distribution;Slope [ADC / Ch.];Entries", 200, -1, 1);
+  commModeOffsetDistr = new TH1F("commModeOffsetDistr", "Common mode offset distribution;Offset [ADC];Entries", 1000, -500, 500);
+
   clusterSize = new TH1I("clusterSize", "Cluster size;Number of channels", 256, -0.5, 255.5);
   nClustEvt = new TH1I("nClustEvt", "Number of clusters per event;Number of clusters", 101, -0.5, 100.5);
 
@@ -252,6 +255,8 @@ void DataRun::doSpecificStuff()
   int evtNum = commVsEvtOffset->GetN();
   commVsEvtOffset->SetPoint(evtNum, evtNum, commMode[0]);
   commVsEvtSlope->SetPoint(evtNum, evtNum, commMode[1]);
+  commModeSlopeDistr->Fill(commMode[1]);
+  commModeOffsetDistr->Fill(commMode[0]);
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // common mode subtraction
     signal[goodChannels[iCh]] = pedSubPH[goodChannels[iCh]] - commMode[0] - commMode[1] * goodChannels[iCh];
@@ -344,6 +349,9 @@ void DataRun::WriteCookedTree()
   delete serv;
 
   clusterSize->Write();
+
+  commModeSlopeDistr->Write();
+  commModeOffsetDistr->Write();
 
   return;
 }

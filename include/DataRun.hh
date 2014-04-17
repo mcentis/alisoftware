@@ -48,6 +48,8 @@ class DataRun : public BinaryData
   TH1I* chInCommMode; // number of channels in the common mode calculation
   TGraph* commVsEvtOffset; // common mode versus event number
   TGraph* commVsEvtSlope; // common mode versus event number
+  TH1F* commModeSlopeDistr;
+  TH1F* commModeOffsetDistr;
 
   TH1I* clusterSize; // number of channels used in each cluster
   TH1I* nClustEvt; // number of clusters per event
