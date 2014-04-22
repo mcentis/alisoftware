@@ -65,9 +65,13 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   TH1D* posStrAdc = new TH1D("posStrAdc", "Cluster position in strip number;Position [Strip number];Entries", 256, -0.5, 255.5);
   TH1D* posmmAdc = new TH1D("posmmAdc", "Cluster position in mm;Position [mm];Entries", 1500, 0, 30);
   TH1I* clustSize = new TH1I("clustSize", "Cluster size in the time cut;Size [Stips];Entries", 21, -0.5, 20.5);
+  TH2I* clustSizeTime = new TH2I("clustSizeTime", "Cluster size vs time;Time [ns];Size [Stips]", 60, 0, 120, 21, -0.5, 20.5);
 
   TH1D* noiseTimeCut = new TH1D("noiseTimeCut", "Strip charge not in clusters in the time cut;Charge [ADC];Entries", 400, -200, 200);
-  bool stripInCluster[nChannels] = {0}; // true is a strip  belongs to a cluster
+  bool stripInCluster[nChannels] = {0}; // true if a strip  belongs to a cluster
+
+  TH1D* diffPos = new TH1D("diffPos", "Difference between position reconstructed with calibrated and non calibrated channels;posADC - posQ [Strips];Entries", 151, -3, 3);
+  TH2D* diffPosTime = new TH2D("diffPosTime", "Difference between position reconstructed with calibrated and non calibrated channels vs time;Time[ns];posADC - posQ [Strips]", 60, 0, 120, 151, -3, 3);
 
   for(long int i = 0; i < nEntries; i++)
     {
@@ -90,8 +94,13 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	      // posmmAdc->Fill(clu.posmmAdc);
 	    }
 
+	  clustSizeTime->Fill(time, clu.strips.size());
+
 	  posStrAdc->Fill(clu.posStrAdc);
 	  posmmAdc->Fill(clu.posmmAdc);
+
+	  diffPos->Fill(clu.posStrAdc - clu.posStrQ);
+	  diffPosTime->Fill(time, clu.posStrAdc - clu.posStrQ);
 	}
 
       if(timeCut1 < time && time < timeCut2) // part to compute the noise in the time cut
@@ -161,6 +170,18 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   TCanvas* can5 = new TCanvas("noiseTime");
   can5->SetTitle("Noise in Time cut");
   noiseTimeCut->Draw();
+
+  TCanvas* can6 = new TCanvas("diffPosCan");
+  can6->SetTitle("Diff pos");
+  diffPos->Draw();
+
+  TCanvas* can7 = new TCanvas("diffPosTimeCan");
+  can7->SetTitle("Diff pos time");
+  diffPosTime->Draw("colz");
+
+  TCanvas* can8 = new TCanvas("cluSizeTimeCan");
+  can8->SetTitle("clust size  time");
+  clustSizeTime->Draw("colz");
 
   return;
 }
