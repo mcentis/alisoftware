@@ -73,6 +73,8 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   TH1D* diffPos = new TH1D("diffPos", "Difference between position reconstructed with calibrated and non calibrated channels;posADC - posQ [Strips];Entries", 151, -3, 3);
   TH2D* diffPosTime = new TH2D("diffPosTime", "Difference between position reconstructed with calibrated and non calibrated channels vs time;Time[ns];posADC - posQ [Strips]", 60, 0, 120, 151, -3, 3);
 
+  TH1D* diffPosmm = new TH1D("diffPosmm", "Difference between position reconstructed with calibrated and non calibrated channels;posADC - posQ [mm];Entries", 151, -0.24, 0.24);
+
   for(long int i = 0; i < nEntries; i++)
     {
       cooked->GetEntry(i);
@@ -99,8 +101,13 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
 	  posStrAdc->Fill(clu.posStrAdc);
 	  posmmAdc->Fill(clu.posmmAdc);
 
+	  // if(clu.strips.size() > 1)
+	  //   {
 	  diffPos->Fill(clu.posStrAdc - clu.posStrQ);
 	  diffPosTime->Fill(time, clu.posStrAdc - clu.posStrQ);
+	  
+	  diffPosmm->Fill(clu.posmmAdc - clu.posmmQ);
+	  //   }
 	}
 
       if(timeCut1 < time && time < timeCut2) // part to compute the noise in the time cut
@@ -182,6 +189,10 @@ void readTrees(const char* inFile, double timeCut1 = 0, double timeCut2 = 115)
   TCanvas* can8 = new TCanvas("cluSizeTimeCan");
   can8->SetTitle("clust size  time");
   clustSizeTime->Draw("colz");
+
+  TCanvas* can9 = new TCanvas("diffPosmmCan");
+  can9->SetTitle("Diff pos mm");
+  diffPosmm->Draw();
 
   return;
 }
