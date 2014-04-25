@@ -35,6 +35,14 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
 
   redChi2Cal = new TH1F("redChi2Cal", "Reduced #chi^{2} of the calibrations fit;#chi^{2} / NDF;Entries", 30, 0, 30);
 
+  redChi2vsCh_posCal = new TGraph();
+  redChi2vsCh_posCal->SetName("redChi2vsCh_posCal");
+  redChi2vsCh_posCal->SetTitle("Reduced #chi^{2} of the calibrations fit for the positive charge");
+
+  redChi2vsCh_negCal = new TGraph();
+  redChi2vsCh_negCal->SetName("redChi2vsCh_negCal");
+  redChi2vsCh_negCal->SetTitle("Reduced #chi^{2} of the calibrations fit for the negative charge");
+
   iSample = 1;
   // iStep = 1;
 }
@@ -175,6 +183,9 @@ void CalRun::fitCalibrations()
 
 	redChi2Cal->Fill(fitFunc->GetChisquare() / fitFunc->GetNDF());
 
+	if(pol == 0) redChi2vsCh_negCal->SetPoint(iCh, iCh, fitFunc->GetChisquare() / fitFunc->GetNDF());
+	else redChi2vsCh_posCal->SetPoint(iCh, iCh, fitFunc->GetChisquare() / fitFunc->GetNDF());
+
 	delete fitFunc;
       }
 
@@ -191,6 +202,21 @@ void CalRun::writeHistos()
 
   outFile->cd();
   redChi2Cal->Write();
+
+  TCanvas* srvCan = new TCanvas();
+  srvCan->cd();
+
+  redChi2vsCh_posCal->Draw("A*");
+  redChi2vsCh_posCal->GetXaxis()->SetTitle("Channel");
+  redChi2vsCh_posCal->GetYaxis()->SetTitle("#chi^{2} / NDF");
+  redChi2vsCh_posCal->Write();
+
+  redChi2vsCh_negCal->Draw("A*");
+  redChi2vsCh_negCal->GetXaxis()->SetTitle("Channel");
+  redChi2vsCh_negCal->GetYaxis()->SetTitle("#chi^{2} / NDF");
+  redChi2vsCh_negCal->Write();
+
+  delete srvCan;
 
   return;
 }

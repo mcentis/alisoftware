@@ -2,7 +2,7 @@ Set of programs to read the data from the alibava setup used in the EPIc test be
 Current problems:
 - check of the info needed from the config file
 - run number finding algorithm to be improved
-- calibration runs to be done
+- in the calibration the measureed PH is not 0 for 0 charge injection
 
 Note on the Makefile:
 The Makefile will produce an object (.o) in obj for each .cc and .cpp file in src.

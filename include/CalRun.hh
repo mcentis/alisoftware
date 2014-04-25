@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "BinaryData.hh"
 
+#include "TGraph.h"
 #include "TH2F.h"
 #include "TProfile.h"
 
@@ -37,6 +38,9 @@ class CalRun : public BinaryData
   float endFit;
 
   TH1F* redChi2Cal;
+
+  TGraph* redChi2vsCh_posCal;
+  TGraph* redChi2vsCh_negCal;
 
   void doSpecificStuff();
   void analyseRunHeader();
