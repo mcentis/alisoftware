@@ -9,8 +9,8 @@ void visualizeEventBeam(int evtNum)
 
   chPropTree->GetEntry(0);
 
-  Float_t commMode;
-  cookedEvtTree->SetBranchAddress("commMode", &commMode);
+  Float_t commMode[2] = {0};
+  cookedEvtTree->SetBranchAddress("commMode", commMode);
 
   UInt_t rawPH[nChannels] = {0};
   rawEvtTree->SetBranchAddress("adcPH", rawPH);
@@ -28,7 +28,7 @@ void visualizeEventBeam(int evtNum)
       pedSubPH[i] = rawPH[i] - ped[i];
       if(noise[i] == -1) continue; // exlude bad channels for the next plot
       pedSubPHgood[i] = rawPH[i] - ped[i];
-      commMSubPH[i] = pedSubPH[i] - commMode;
+      commMSubPH[i] = pedSubPH[i] - commMode[0] - commMode[1] * i;
     }
 
   for(int i = 0; i < nChannels; ++i)
@@ -43,8 +43,8 @@ void visualizeEventBeam(int evtNum)
   TH1D* commsubhist = new TH1D("commsubhist", TString::Format("Common mode subtracted pulse height event %i;Channel;PH [ADC]", evtNum), 256, -0.5, 255.5);
   TH1D* snrhist = new TH1D("snrhist", TString::Format("Signal to noise ratio event %i;Channel;SNR", evtNum), 256, -0.5, 255.5);
 
-  TF1* cm = new TF1("cm", "[0]", -0.5, 255.5);
-  cm->SetParameter(0, commMode);
+  TF1* cm = new TF1("cm", "[0] + [1] * x", -0.5, 255.5);
+  cm->SetParameters(commMode[0], commMode[1]);
   cm->SetLineColor(kRed);
 
   TH1* histos[5] = {rawhist, pedsubhist, pedsubgoodhist, commsubhist, snrhist};

@@ -24,7 +24,7 @@ class DataRun : public BinaryData
   Double_t calibrations[nChannels][2][nParameters]; // 2 polarities
   TF1* toAliE; // function to convert the adc info to alibava electrons
 
-  void CommonModeCalculation(double* phChannels); // this takes the pedestal subtracted ph, it is assumed that no signal is present
+  void CommonModeCalculation(double* phChannels); // this takes the pedestal subtracted ph, common mode as line with slope, cuts for signal exclusion
   void FindClusters(Float_t* phChannels); // this takes pedestal and common mode subtracted ph, the non used channels ph set to 0
 
   void FindClusterPos(cluster* clu); // find the position of the cluster using the center of gravity algorithm
@@ -42,14 +42,16 @@ class DataRun : public BinaryData
   double pitch; // pitch of the sensor, in mm
 
   // branches of the elaborated events tree
-  Float_t commMode;
+  Float_t commMode[2];
   std::vector<cluster> clustVec;
   std::vector<cluster>* clustVecPtr;
   Float_t signal[nChannels];
 
   TH1I* chInCommMode; // number of channels in the common mode calculation
-  TGraph* commVsEvt; // common mode versus event number
-  TH1F* commModeDistr; // common mode distribution
+  TGraph* commVsEvtOffset; // common mode versus event number
+  TGraph* commVsEvtSlope; // common mode versus event number
+  TH1F* commModeSlopeDistr;
+  TH1F* commModeOffsetDistr;
 
   TH1I* clusterSize; // number of channels used in each cluster
   TH1I* nClustEvt; // number of clusters per event
