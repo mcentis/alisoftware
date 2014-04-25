@@ -78,8 +78,6 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   commModeSlopeDistr = new TH1F("commModeSlopeDistr", "Common mode slope distribution;Slope [ADC / Ch.];Entries", 200, -1, 1);
   commModeOffsetDistr = new TH1F("commModeOffsetDistr", "Common mode offset distribution;Offset [ADC];Entries", 1000, -500, 500);
 
-  commModeDistr = new TH1F("commModeDistr", "Distribution of the common mode;Common mode [ADC];Entries", 1000, -500, 500);
-
   clusterSize = new TH1I("clusterSize", "Cluster size;Number of channels", 256, -0.5, 255.5);
   nClustEvt = new TH1I("nClustEvt", "Number of clusters per event;Number of clusters", 101, -0.5, 100.5);
 
@@ -356,8 +354,6 @@ void DataRun::WriteCookedTree()
   commVsEvtSlope->Write();
 
   delete serv;
-
-  commModeDistr->Write();
 
   clusterSize->Write();
 
