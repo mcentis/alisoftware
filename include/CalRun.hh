@@ -39,6 +39,15 @@ class CalRun : public BinaryData
 
   TH1F* redChi2Cal;
 
+  TDirectory* parPosCal;
+  TDirectory* parNegCal;
+
+  TGraph* parVsCh_posCal[nParameters];
+  TGraph* parVsCh_negCal[nParameters];
+
+  TH1F* parDistr_posCal[nParameters];
+  TH1F* parDistr_negCal[nParameters];
+
   TGraph* redChi2vsCh_posCal;
   TGraph* redChi2vsCh_negCal;
 
@@ -47,6 +56,8 @@ class CalRun : public BinaryData
 
   void createHistos();
   void writeHistos();
+  void drawParGraphs();
+  void writeParGraphs();
   void writeProfiles();
   void writeParList();
 
