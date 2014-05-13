@@ -46,6 +46,7 @@ class DataRun : public BinaryData
   std::vector<cluster> clustVec;
   std::vector<cluster>* clustVecPtr;
   Float_t signal[nChannels];
+  Float_t caliSignal[nChannels];
 
   TH1I* chInCommMode; // number of channels in the common mode calculation
   TGraph* commVsEvtOffset; // common mode versus event number

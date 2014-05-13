@@ -63,6 +63,7 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   cookedEvtTree->Branch("commMode", commMode, "commMode[2]/F");
   cookedEvtTree->Branch("clustVec", "vector<cluster>", &clustVecPtr);
   cookedEvtTree->Branch("signal", signal, TString::Format("signal[%i]/F", nChannels));
+  cookedEvtTree->Branch("caliSignal", caliSignal, TString::Format("caliSignal[%i]/F", nChannels));
 
   // ==================== plots ===============================
   chInCommMode = new TH1I("chInCommMode", "Number of channels used in common mode calculation after cuts;Number of channels;Events", 256, -0.5, 255.5);
@@ -252,7 +253,11 @@ void DataRun::CommonModeCalculation(double* phChannels)
 void DataRun::doSpecificStuff()
 {
   double pedSubPH[nChannels] = {0};
-  for(int i = 0; i < nChannels; ++i) signal[i] = 0; // reset to 0 the signal
+  for(int i = 0; i < nChannels; ++i) // reset to 0 the signal
+    {
+      signal[i] = 0;
+      caliSignal[i] = 0;
+    }
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // pedestal subtraction
     pedSubPH[goodChannels[iCh]] = adcPH[goodChannels[iCh]] - pedestals[goodChannels[iCh]];
@@ -269,6 +274,16 @@ void DataRun::doSpecificStuff()
     signal[goodChannels[iCh]] = pedSubPH[goodChannels[iCh]] - commMode[0] - commMode[1] * goodChannels[iCh];
 
   FindClusters(signal);
+
+  for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // apply calibration to the signal
+    {
+      if(signal[goodChannels[iCh]] > 0) // positive signal
+	toAliE->SetParameters(calibrations[goodChannels[iCh]][1]);
+      else
+	toAliE->SetParameters(calibrations[goodChannels[iCh]][0]);
+
+      caliSignal[goodChannels[iCh]] = toAliE->Eval(signal[goodChannels[iCh]]);
+    }
 
   cookedEvtTree->Fill();
 
