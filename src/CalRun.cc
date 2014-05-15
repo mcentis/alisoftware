@@ -142,29 +142,32 @@ void CalRun::doSpecificStuff()
 
   for(int i = 0; i < nChips; ++i)
     {
+      for(int j = 0; j < nChChip; ++j)
+	{
+	  iCh = j + nChChip * i;
+	  meanSig[i] += adcPH[iCh] - pedestals[iCh];
+	}
+      meanSig[i] /= nChChip;
+
+      meanSignalEvt[i]->SetPoint(meanSignalEvt[i]->GetN(), meanSignalEvt[i]->GetN(), meanSig[i]);
+    }
+
+  for(int i = 0; i < nChips; ++i)
     for(int j = 0; j < nChChip; ++j)
       {
 	iCh = j + nChChip * i;
-	meanSig[i] += adcPH[iCh] - pedestals[iCh];
+	
+	if(iSample % 2) // every event the polarity of the charge is inverted
+	  {
+	    if(iCh % 2) calHistos[iCh]->Fill(injCharge, adcPH[iCh] - pedestals[iCh] - meanSig[i]);
+	    else calHistos[iCh]->Fill(-injCharge, adcPH[iCh] - pedestals[iCh] - meanSig[i]); // channels with even channel number get inverted
+	  }
+	else
+	  {
+	    if(iCh % 2) calHistos[iCh]->Fill(-injCharge, adcPH[iCh] - pedestals[iCh] - meanSig[i]); // channels with odd channel number get inverted
+	    else calHistos[iCh]->Fill(injCharge, adcPH[iCh] - pedestals[iCh] - meanSig[i]);
+	  }
       }
-    meanSig[i] /= nChChip;
-    }
-
-  //===================================== continue from here!!!!!===========================
-
-  for(int i = 0; i < nChannels; ++i)
-    {
-      if(iSample % 2) // every event the polarity of the charge is inverted
-      {
-    	if(i % 2) calHistos[i]->Fill(injCharge, adcPH[i] - pedestals[i]);
-    	else calHistos[i]->Fill(-injCharge, adcPH[i] - pedestals[i]); // channels with even channel number get inverted
-      }
-    else
-      {
-    	if(i % 2) calHistos[i]->Fill(-injCharge, adcPH[i] - pedestals[i]); // channels with odd channel number get inverted
-    	else calHistos[i]->Fill(injCharge, adcPH[i] - pedestals[i]);
-      }
-    }
 
 
   if(iSample == nSamples * 2) // nSamples for each polarity
