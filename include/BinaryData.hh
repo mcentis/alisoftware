@@ -50,6 +50,7 @@ protected:
   Float_t time; // event time (phase between trigger and clock)
   Float_t temp; // chip temperature
   UInt_t adcPH[nChannels];
+  UInt_t headers[totHeadBits]; // headers of the chips
 
   TH2I* allEvents;
 

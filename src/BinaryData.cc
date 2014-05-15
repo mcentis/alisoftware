@@ -49,6 +49,7 @@ BinaryData::BinaryData(const char* InFileName, ConfigFileReader* Conf)
   rawEvtTree->Branch("time", &time, "time/F");
   rawEvtTree->Branch("adcPH", adcPH, TString::Format("adcPH[%i]/i", nChannels)); // trick with the string to have the right array length
   rawEvtTree->Branch("temp", &temp, "temp/F");
+  rawEvtTree->Branch("headers", headers, TString::Format("headers[%i]/i", totHeadBits)); // trick with the string to have the right array length
 
   allEvents = new TH2I("allEvents", "Raw PH all channels;Channel;Pulse height [ADC]", 256, -0.5, 255.5, 1024, -0.5, 1023.5);
 }
@@ -155,8 +156,8 @@ void BinaryData::ReadFile()
   double scanValue;
   uint32_t rawTime;
   uint16_t rawTemp;
-  uint16_t evtHeader[32];
   uint16_t tempAdcPH[nChannels]; // temporary data storage to have conversion from uint16_t to UInt_t
+  uint16_t tempHead[totHeadBits]; // see above, but for the headers
 
   if(version == 0)
     {
@@ -232,7 +233,7 @@ void BinaryData::ReadFile()
 
 	  for(int ichip = 0; ichip < 2; ++ichip)
 	    {
-	      fileStr.read((char*) &evtHeader[ichip * 16], 16 * sizeUint16);
+	      fileStr.read((char*) &tempHead[ichip * (totHeadBits / 2)], (totHeadBits / 2) * sizeUint16);
 	      fileStr.read((char*) &tempAdcPH[ichip * (nChannels / 2)], (nChannels / 2) * sizeUint16);
 	    }
 
@@ -241,6 +242,9 @@ void BinaryData::ReadFile()
 	      adcPH[ichan] = tempAdcPH[ichan];
 	      allEvents->Fill(ichan, adcPH[ichan]);
 	    }
+
+	  for(int iBit = 0; iBit < totHeadBits; ++iBit)
+	    headers[iBit] = tempHead[iBit];
 
 	  evtCount++;
 	  rawEvtTree->Fill();
