@@ -65,6 +65,15 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
       parVsCh_negCal[i]->SetTitle(title);
     }
 
+  for(int i = 0; i < nChips; ++i)
+    {
+      meanSignalEvt[i] = new TGraph();
+      sprintf(name, "meanSignalEvt_chip%i", i);
+      sprintf(title, "Mean signal vs event (like cm) chip %i", i);
+      meanSignalEvt[i]->SetName(name);
+      meanSignalEvt[i]->SetTitle(title);
+    }
+
   iSample = 1;
   // iStep = 1;
 }
@@ -127,6 +136,21 @@ void CalRun::createHistos()
 void CalRun::doSpecificStuff()
 {
   // charge = iStep * stepSize;
+
+  float meanSig[nChips] = {0};
+  int iCh = 0; // to iterate over the channels
+
+  for(int i = 0; i < nChips; ++i)
+    {
+    for(int j = 0; j < nChChip; ++j)
+      {
+	iCh = j + nChChip * i;
+	meanSig[i] += adcPH[iCh] - pedestals[iCh];
+      }
+    meanSig[i] /= nChChip;
+    }
+
+  //===================================== continue from here!!!!!===========================
 
   for(int i = 0; i < nChannels; ++i)
     {
@@ -302,6 +326,14 @@ void CalRun::writeParGraphs()
   redChi2vsCh_negCal->GetXaxis()->SetTitle("Channel");
   redChi2vsCh_negCal->GetYaxis()->SetTitle("#chi^{2} / NDF");
   redChi2vsCh_negCal->Write();
+
+  for(int i = 0; i < nChips; ++i)
+    {
+      meanSignalEvt[i]->Draw("A");
+      meanSignalEvt[i]->GetXaxis()->SetTitle("Event number");
+      meanSignalEvt[i]->GetYaxis()->SetTitle("Mean signal [ADC]");
+      meanSignalEvt[i]->Write();
+    }
 
   delete srvCan;
 

@@ -51,6 +51,8 @@ class CalRun : public BinaryData
   TGraph* redChi2vsCh_posCal;
   TGraph* redChi2vsCh_negCal;
 
+  TGraph* meanSignalEvt[nChips];
+
   void doSpecificStuff();
   void analyseRunHeader();
 
