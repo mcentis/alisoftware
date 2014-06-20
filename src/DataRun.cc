@@ -514,10 +514,10 @@ void DataRun::FindClusterPos(cluster* clu)
     }
 
   clu->posStrAdc = sumPosADC / sumADC;
-  clu->posmmAdc = clu->posStrAdc * pitch;
+  clu->posmmAdc = clu->posStrAdc * pitch + 0.5 * pitch;
 
   clu->posStrQ = sumPosQ / sumQ;
-  clu->posmmQ = clu->posStrQ * pitch;
+  clu->posmmQ = clu->posStrQ * pitch + 0.5 * pitch;
 
   return;
 }
