@@ -328,6 +328,18 @@ void DataRun::AnalyseData()
       	    clu = cluVecPtr->at(iCl);
 	    clusterTime->Fill(time, clu.adcTot);
       	  }
+
+      // std::cout << "------------------- Event " << i << '\n';
+      // std::cout << "N clusters: " << nClust << std::endl;
+      // if(nClust != 0)
+      // 	for(int iCl = 0; iCl < nClust; iCl++)
+      // 	  {
+      // 	    clu = cluVecPtr->at(iCl);
+      // 	    std::cout << "Cluster " << iCl << ": ";
+      // 	    for(unsigned int iStr = 0; iStr < clu.strips.size(); ++iStr)
+      // 	      std::cout << ' ' << clu.strips.at(iStr);
+      // 	    std::cout << std::endl;
+      // 	  }
     }
 
   signalTimeProfile = signalTime->ProfileX("signalTimeProfile");
