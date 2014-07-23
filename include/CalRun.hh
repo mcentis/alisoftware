@@ -18,6 +18,8 @@ class CalRun : public BinaryData
   TH2F* calHistos[nChannels];
   TProfile* calProfiles[nChannels];
 
+  bool isGoodCh[nChannels]; // true if the channel is good
+
   int startCharge; // min abs val of injected charge
   int endCharge; // max abs val of injected charge
   int stepSize; // steps size from min to max
@@ -47,6 +49,9 @@ class CalRun : public BinaryData
 
   TH1F* parDistr_posCal[nParameters];
   TH1F* parDistr_negCal[nParameters];
+
+  TH1F* parDistr_posCal_goodCh[nParameters]; // same as the ones before, just for good channels
+  TH1F* parDistr_negCal_goodCh[nParameters];
 
   TGraph* redChi2vsCh_posCal;
   TGraph* redChi2vsCh_negCal;

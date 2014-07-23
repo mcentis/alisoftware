@@ -25,6 +25,10 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
     }
 
   ReadPedFile(conf->GetValue("pedNoiseFile").c_str()); // read pedestal file
+  readGoodChFile(conf->GetValue("goodChFile").c_str()); // read good channels file
+
+  for(int iCh = 0; iCh < nChannels; ++iCh) isGoodCh[iCh] = false;
+  for(unsigned int i = 0; i < goodChannels.size(); ++i) isGoodCh[goodChannels.at(i)] = true;
 
   startFit = atof(conf->GetValue("fitStart").c_str());
   endFit = atof(conf->GetValue("fitEnd").c_str());
@@ -268,12 +272,21 @@ void CalRun::drawParGraphs()
 
       parDistr_posCal[iPar] = new TH1F(name, title, 200, min, max);
 
+      sprintf(name, "distrPar_%i_posCal_goodCh", iPar);
+      sprintf(title, "Distribution of parameter %i, positive calibration, good channels", iPar);
+      parDistr_posCal_goodCh[iPar] = new TH1F(name, title, 200, min, max);
+
       sprintf(name, "distrPar_%i_negCal", iPar);
       sprintf(title, "Distribution of parameter %i, negative calibration", iPar);
       min = parVsCh_negCal[iPar]->GetYaxis()->GetXmin();
       max = parVsCh_negCal[iPar]->GetYaxis()->GetXmax();
 
       parDistr_negCal[iPar] = new TH1F(name, title, 200, min, max);
+
+      sprintf(name, "distrPar_%i_negCal_goodCh", iPar);
+      sprintf(title, "Distribution of parameter %i, positive calibration, good channels", iPar);
+      parDistr_negCal_goodCh[iPar] = new TH1F(name, title, 200, min, max);
+
     }
 
   for(int iCh = 0; iCh < nChannels; iCh++)
@@ -281,6 +294,12 @@ void CalRun::drawParGraphs()
       {
 	parDistr_negCal[iPar]->Fill(parameters[iCh][0][iPar]);
 	parDistr_posCal[iPar]->Fill(parameters[iCh][1][iPar]);
+
+	if(isGoodCh[iCh])
+	  {
+	    parDistr_negCal_goodCh[iPar]->Fill(parameters[iCh][0][iPar]);
+	    parDistr_posCal_goodCh[iPar]->Fill(parameters[iCh][1][iPar]);
+	  }
       }
 
   return;
@@ -308,10 +327,12 @@ void CalRun::writeParGraphs()
   parPosCal->cd();
   for(int iPar = 0; iPar < nParameters; ++iPar) parVsCh_posCal[iPar]->Write();
   for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_posCal[iPar]->Write();
+  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_posCal_goodCh[iPar]->Write();
 
   parNegCal->cd();
   for(int iPar = 0; iPar < nParameters; ++iPar) parVsCh_negCal[iPar]->Write();
   for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_negCal[iPar]->Write();
+  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_negCal_goodCh[iPar]->Write();
 
   return;
 }
