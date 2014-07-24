@@ -284,7 +284,7 @@ void CalRun::drawParGraphs()
       parDistr_negCal[iPar] = new TH1F(name, title, 200, min, max);
 
       sprintf(name, "distrPar_%i_negCal_goodCh", iPar);
-      sprintf(title, "Distribution of parameter %i, positive calibration, good channels", iPar);
+      sprintf(title, "Distribution of parameter %i, negativecalibration, good channels", iPar);
       parDistr_negCal_goodCh[iPar] = new TH1F(name, title, 200, min, max);
 
     }
