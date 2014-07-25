@@ -41,6 +41,8 @@ class DataRun : public BinaryData
 
   double pitch; // pitch of the sensor, in mm
 
+  double scaleFactor; // scale the ph in case it is needed, temperature effects as an example
+
   // branches of the elaborated events tree
   Float_t commMode[2];
   std::vector<cluster> clustVec;

@@ -42,6 +42,14 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
 
   pitch = atof(conf->GetValue("pitch").c_str());
 
+  if(atof(conf->GetValue("scaleFactor").c_str()) != 0)
+    {
+      scaleFactor = atof(conf->GetValue("scaleFactor").c_str());
+      std::cout << "================================================================>>> WARNING You are going to apply a scaling factor to the signal after the clustering (in the AddStrip function)" <<std::endl;
+    }
+  else
+    scaleFactor = 1;
+
   readGoodChFile(conf->GetValue("goodChFile").c_str());
 
   // ========================= channel properties ==================
@@ -392,9 +400,9 @@ void DataRun::WriteCookedTree()
 
 void DataRun::AddStrip(cluster* clu, Float_t* phArray, int stripNum)
 {
-  clu->adcTot += phArray[stripNum]; // the total charge is the sum with sign
+  clu->adcTot += phArray[stripNum] * scaleFactor; // the total charge is the sum with sign
   clu->strips.push_back(stripNum);
-  clu->adcStrips.push_back(phArray[stripNum]);
+  clu->adcStrips.push_back(phArray[stripNum] * scaleFactor);
 
   if(phArray[stripNum] > 0) // positive signal
     toAliE->SetParameters(calibrations[stripNum][1]);
