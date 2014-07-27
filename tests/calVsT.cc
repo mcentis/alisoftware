@@ -1,9 +1,9 @@
 void calVsT()
 {
-  const char* baseDir = "/space/centis/alisoft/alisoftware/data/M200Punirrad/filesCalVsT/"; // it is important to use the final /
+  const char* baseDir = "./data/M200Punirrad/filesCalVsT/"; // it is important to use the final /
   // runs and temperatures for delay 78
   const int nPoints = 6;
-  double temp[nPoints] = {13, 14, 19, 22, 24, 24};
+  double temp[nPoints] = {13, 14, 19, 22, 23.6, 24};
   char* runs[nPoints] = {"run000017.root", "run000013.root", "run000010.root", "run000007.root", "run000004.root", "run000002.root"};
 
   // runs and temperatures for delay 82
@@ -13,19 +13,19 @@ void calVsT()
 
   TGraphErrors* slopePos = new TGraphErrors();
   slopePos->SetName("slopePos");
-  slopePos->SetTitle("slope pos cal, del  ns");
+  slopePos->SetTitle("slope pos cal");
 
   TGraphErrors* offsetPos = new TGraphErrors();
   offsetPos->SetName("offsetPos");
-  offsetPos->SetTitle("offset pos cal, del  ns");
+  offsetPos->SetTitle("offset pos cal");
 
   TGraphErrors* slopeNeg = new TGraphErrors();
   slopeNeg->SetName("slopeNeg");
-  slopeNeg->SetTitle("slope neg cal, del  ns");
+  slopeNeg->SetTitle("slope neg cal");
 
   TGraphErrors* offsetNeg = new TGraphErrors();
   offsetNeg->SetName("offsetNeg");
-  offsetNeg->SetTitle("offset neg cal, del  ns");
+  offsetNeg->SetTitle("offset neg cal");
 
   TFile* inFile;
   TDirectory* dir;
@@ -47,7 +47,7 @@ void calVsT()
 
   for(int i = 0; i < nPoints; ++i)
     {
-      sprintf(fileName, "%s%s", baseDir, runs[i]);
+      sprintf(fileName, "%s/%s", baseDir, runs[i]);
       inFile = TFile::Open(fileName);
 
       // std::cout << fileName << std::endl;
@@ -58,15 +58,15 @@ void calVsT()
       dir = (TDirectory*) inFile->Get("Graphs_posCal_Parameters");
       hist = (TH1*) dir->Get("distrPar_1_posCal_goodCh");
       slopePos->SetPoint(i, temp[i], hist->GetMean());
-      slopePos->SetPointError(i, 0, hist->GetRMS());
+      slopePos->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
       slope = hist->GetMean();
-      eSlope = hist->GetRMS();
+      eSlope = hist->GetRMS() / sqrt(hist->GetEntries());
 
       hist = (TH1*) dir->Get("distrPar_0_posCal_goodCh");
       offsetPos->SetPoint(i, temp[i], hist->GetMean());
-      offsetPos->SetPointError(i, 0, hist->GetRMS());
+      offsetPos->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
       offset = hist->GetMean();
-      eOff = hist->GetRMS();
+      eOff = hist->GetRMS() / sqrt(hist->GetEntries());
 
       respPos->SetPoint(i, temp[i], charge * slope + offset);
       err = sqrt(charge * charge * eSlope * eSlope + eOff * eOff);
@@ -77,15 +77,15 @@ void calVsT()
       dir = (TDirectory*) inFile->Get("Graphs_negCal_Parameters");
       hist = (TH1*) dir->Get("distrPar_1_negCal_goodCh");
       slopeNeg->SetPoint(i, temp[i], hist->GetMean());
-      slopeNeg->SetPointError(i, 0, hist->GetRMS());
+      slopeNeg->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
       slope = hist->GetMean();
-      eSlope = hist->GetRMS();
+      eSlope = hist->GetRMS() / sqrt(hist->GetEntries());
 
       hist = (TH1*) dir->Get("distrPar_0_negCal_goodCh");
       offsetNeg->SetPoint(i, temp[i], hist->GetMean());
-      offsetNeg->SetPointError(i, 0, hist->GetRMS());
+      offsetNeg->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
       offset = hist->GetMean();
-      eOff = hist->GetRMS();
+      eOff = hist->GetRMS() / sqrt(hist->GetEntries());
 
       respNeg->SetPoint(i, temp[i], charge * slope + offset);
       err = sqrt(charge * charge * eSlope * eSlope + eOff * eOff);
@@ -98,10 +98,14 @@ void calVsT()
 
   std::cout << "readen files" << std::endl;
 
+  TF1* fitPosSlope = new TF1("fitPosSlope", "pol2", 0, 30);
+  TF1* fitNegSlope = new TF1("fitNegSlope", "pol2", 0, 30);
+
   TCanvas* posCan = new TCanvas("posCan", "posCan");
   posCan->Divide(2, 1);
   posCan->cd(1);
   slopePos->Draw("AP");
+  slopePos->Fit(fitPosSlope);
   slopePos->GetXaxis()->SetTitle("Chip temperature [C]");
   slopePos->GetYaxis()->SetTitle("Slope fit [ADC / e]");
   posCan->cd(2);
@@ -115,6 +119,7 @@ void calVsT()
   negCan->Divide(2, 1);
   negCan->cd(1);
   slopeNeg->Draw("AP");
+  slopeNeg->Fit(fitNegSlope);
   slopeNeg->GetXaxis()->SetTitle("Chip temperature [C]");
   slopeNeg->GetYaxis()->SetTitle("Slope fit [ADC / e]");
   negCan->cd(2);
@@ -136,6 +141,10 @@ void calVsT()
   respNeg->GetYaxis()->SetTitle("Response [ADC]");
   respCan->Modified();
   respCan->Update();
+
+  std::cout << "slope at 10.44 C " << fitNegSlope->Eval(10.44) << std::endl;
+  std::cout << "slope at 23.8 C " << fitNegSlope->Eval(23.8) << std::endl;
+  std::cout << "slope ratio   " << fitNegSlope->Eval(10.44) / fitNegSlope->Eval(23.8) << std::endl;
 
   return;
 }
