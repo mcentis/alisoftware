@@ -129,6 +129,18 @@ void calVsT()
   negCan->Modified();
   negCan->Update();
 
+  TCanvas* posFuncCan = new TCanvas("posFuncCan", "posFuncCan");
+  fitPosSlope->Draw();
+  slopePos->Draw("Psame");
+  posFuncCan->Modified();
+  posFuncCan->Update();
+
+  TCanvas* negFuncCan = new TCanvas("negFuncCan", "negFuncCan");
+  fitNegSlope->Draw();
+  slopeNeg->Draw("Psame");
+  negFuncCan->Modified();
+  negFuncCan->Update();
+
   TCanvas* respCan = new TCanvas("respCan", "respCan");
   respCan->Divide(2, 1);
   respCan->cd(1);
