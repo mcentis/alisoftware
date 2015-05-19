@@ -348,7 +348,7 @@ void CalRun::writeProfiles()
 
 void CalRun::ReadPedFile(const char* pedFile)
 {
-  ifstream pedStr;
+  std::ifstream pedStr;
   pedStr.open(pedFile, std::ifstream::in);
 
   if(pedStr.is_open() == false)

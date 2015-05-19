@@ -146,10 +146,10 @@ void DelRun::AnalyseData()
       delHistosGoodCh[pol]->Add(delHistos[goodChannels.at(i)][pol]);
   
   delProfileGoodCh[0] = delHistosGoodCh[0]->ProfileX("delProfileGoodCh_neg");
-  delProfileGoodCh[0]->SetTitle("Delay scan good channels, negative polarity;Delay [ns];Measured pulse height [ADC]")
+  delProfileGoodCh[0]->SetTitle("Delay scan good channels, negative polarity;Delay [ns];Measured pulse height [ADC]");
 
   delProfileGoodCh[1] = delHistosGoodCh[1]->ProfileX("delProfileGoodCh_pos");
-  delProfileGoodCh[1]->SetTitle("Delay scan good channels, positive polarity;Delay [ns];Measured pulse height [ADC]")
+  delProfileGoodCh[1]->SetTitle("Delay scan good channels, positive polarity;Delay [ns];Measured pulse height [ADC]");
 
   writeHistos();
   writeProfiles();
@@ -168,7 +168,7 @@ void DelRun::writeHistos()
 
   outFile->cd();
   for(int pol = 0; pol < 2; ++pol)
-    delHistGoodCh[pol]->Write();
+    delHistosGoodCh[pol]->Write();
 
   return;
 }
@@ -191,7 +191,7 @@ void DelRun::writeProfiles()
 
 void DelRun::ReadPedFile(const char* pedFile)
 {
-  ifstream pedStr;
+  std::ifstream pedStr;
   pedStr.open(pedFile, std::ifstream::in);
 
   if(pedStr.is_open() == false)

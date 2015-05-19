@@ -100,7 +100,7 @@ DataRun::~DataRun()
 
 void DataRun::ReadPedFile(const char* pedFile)
 {
-  ifstream pedStr;
+  std::ifstream pedStr;
   pedStr.open(pedFile, std::ifstream::in);
 
   if(pedStr.is_open() == false)
@@ -138,7 +138,7 @@ void DataRun::ReadPedFile(const char* pedFile)
 
 void DataRun::ReadCalFile(const char* calFile)
 {
-  ifstream calStr;
+  std::ifstream calStr;
   calStr.open(calFile, std::ifstream::in);
 
   if(calStr.is_open() == false)

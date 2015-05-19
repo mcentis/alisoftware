@@ -299,7 +299,7 @@ void BinaryData::readGoodChFile(const char* chFileName)
 {
   goodChannels.clear();
 
-  ifstream chStr;
+  std::ifstream chStr;
   chStr.open(chFileName, std::ifstream::in);
 
   if(chStr.is_open() == false)
