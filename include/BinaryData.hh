@@ -70,7 +70,7 @@ protected:
 
 public:
   BinaryData(const char* InFileName, ConfigFileReader* Conf);
-  ~BinaryData();
+  virtual ~BinaryData();
 
   void ReadFile();
   void WriteEvts();

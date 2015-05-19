@@ -32,6 +32,10 @@ struct cluster
       posmmQ = -1;
     };
 
+  virtual ~cluster()
+  {
+  };
+
   ClassDef(cluster, 1);
 };
 
