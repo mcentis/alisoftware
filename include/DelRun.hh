@@ -17,6 +17,9 @@ class DelRun : public BinaryData
   TH2F* delHistos[nChannels][2]; // [2] cause of the different polarities
   TProfile* delProfiles[nChannels][2];
 
+  TH2F* delHistosGoodCh[2]; // sum of histograms of the good channels
+  TProfile* delProfileGoodCh[2];
+
   int startDel; // start value of the delay
   int endDel; // end value of the delay
   int stepSize; // step size from start to end

@@ -18,6 +18,7 @@ DelRun::DelRun(const char* binFile, ConfigFileReader* Conf):
     }
 
   ReadPedFile(conf->GetValue("pedNoiseFile").c_str()); // read pedestal file
+  readGoodChFile(conf->GetValue("goodChFile").c_str()); // read good channels file
 
   histoDir[0] = outFile->mkdir("Histograms_Negative_charge");
   profileDir[0] = outFile->mkdir("Profiles_Negative_charge");
@@ -82,6 +83,9 @@ void DelRun::createHistos()
       delHistos[i][1] = new TH2F(name, title, nSteps + 1, startDel - stepSize / 2., endDel + stepSize / 2., 1024, -511.5, 511.5);
     }
 
+  delHistosGoodCh[0] = new TH2F("delHistGoodCh_neg", "Sum of delay scan good channels, negative polarity;Delay [ns];Measured pulse height [ADC]", nSteps + 1, startDel - stepSize / 2., endDel + stepSize / 2., 1024, -511.5, 511.5);
+  delHistosGoodCh[1] = new TH2F("delHistGoodCh_pos", "Sum of delay scan good channels, positive polarity;Delay [ns];Measured pulse height [ADC]", nSteps + 1, startDel - stepSize / 2., endDel + stepSize / 2., 1024, -511.5, 511.5);
+
   return;
 }
 
@@ -137,6 +141,16 @@ void DelRun::AnalyseData()
       delProfiles[i][pol]->SetTitle(title);
     }
 
+  for(unsigned int i = 0; i < goodChannels.size(); ++i)
+    for(int pol = 0; pol < 2; ++pol)
+      delHistosGoodCh[pol]->Add(delHistos[goodChannels.at(i)][pol]);
+  
+  delProfileGoodCh[0] = delHistosGoodCh[0]->ProfileX("delProfileGoodCh_neg");
+  delProfileGoodCh[0]->SetTitle("Delay scan good channels, negative polarity;Delay [ns];Measured pulse height [ADC]")
+
+  delProfileGoodCh[1] = delHistosGoodCh[1]->ProfileX("delProfileGoodCh_pos");
+  delProfileGoodCh[1]->SetTitle("Delay scan good channels, positive polarity;Delay [ns];Measured pulse height [ADC]")
+
   writeHistos();
   writeProfiles();
 
@@ -152,6 +166,10 @@ void DelRun::writeHistos()
 	delHistos[i][pol]->Write();
     }
 
+  outFile->cd();
+  for(int pol = 0; pol < 2; ++pol)
+    delHistGoodCh[pol]->Write();
+
   return;
 }
 
@@ -163,6 +181,10 @@ void DelRun::writeProfiles()
       for(int i = 0; i < nChannels; ++i)
 	delProfiles[i][pol]->Write();
     }
+
+  outFile->cd();
+  for(int pol = 0; pol < 2; ++pol)
+    delProfileGoodCh[pol]->Write();
 
   return;
 }

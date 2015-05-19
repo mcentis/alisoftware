@@ -100,6 +100,7 @@ void calVsT()
 
   TF1* fitPosSlope = new TF1("fitPosSlope", "pol2", 0, 30);
   TF1* fitNegSlope = new TF1("fitNegSlope", "pol2", 0, 30);
+  fitNegSlope->SetParameters(0.004, 7e-5, -4e-6); // start values in case of fit with errors in T
 
   TCanvas* posCan = new TCanvas("posCan", "posCan");
   posCan->Divide(2, 1);
@@ -131,32 +132,50 @@ void calVsT()
 
   TCanvas* posFuncCan = new TCanvas("posFuncCan", "posFuncCan");
   fitPosSlope->Draw();
-  slopePos->Draw("Psame");
+  //slopePos->Draw("Psame");
   posFuncCan->Modified();
   posFuncCan->Update();
 
   TCanvas* negFuncCan = new TCanvas("negFuncCan", "negFuncCan");
   fitNegSlope->Draw();
-  slopeNeg->Draw("Psame");
+  //slopeNeg->Draw("Psame");
   negFuncCan->Modified();
   negFuncCan->Update();
 
-  TCanvas* respCan = new TCanvas("respCan", "respCan");
-  respCan->Divide(2, 1);
-  respCan->cd(1);
-  respPos->Draw("A*");
-  respPos->GetXaxis()->SetTitle("Chip temperature [C]");
-  respPos->GetYaxis()->SetTitle("Response [ADC]");
-  respCan->cd(2);
-  respNeg->Draw("A*");
-  respNeg->GetXaxis()->SetTitle("Chip temperature [C]");
-  respNeg->GetYaxis()->SetTitle("Response [ADC]");
-  respCan->Modified();
-  respCan->Update();
+  // TCanvas* respCan = new TCanvas("respCan", "respCan");
+  // respCan->Divide(2, 1);
+  // respCan->cd(1);
+  // respPos->Draw("A*");
+  // respPos->GetXaxis()->SetTitle("Chip temperature [C]");
+  // respPos->GetYaxis()->SetTitle("Response [ADC]");
+  // respCan->cd(2);
+  // respNeg->Draw("A*");
+  // respNeg->GetXaxis()->SetTitle("Chip temperature [C]");
+  // respNeg->GetYaxis()->SetTitle("Response [ADC]");
+  // respCan->Modified();
+  // respCan->Update();
 
-  std::cout << "slope at 10.44 C " << fitNegSlope->Eval(10.44) << std::endl;
-  std::cout << "slope at 23.8 C " << fitNegSlope->Eval(23.8) << std::endl;
-  std::cout << "slope ratio   " << fitNegSlope->Eval(10.44) / fitNegSlope->Eval(23.8) << std::endl;
+  TF1* errSlope = new TF1("errSlope", "sqrt(pow([0], 2) + pow(x * [1], 2) + pow(x * x * [2], 2) + pow(([3] + 0.5 * [4] * x) * [5], 2))", 0, 30);
+  errSlope->SetParameter(0, fitNegSlope->GetParError(0));
+  errSlope->SetParameter(1, fitNegSlope->GetParError(1));
+  errSlope->SetParameter(2, fitNegSlope->GetParError(2));
+  errSlope->SetParameter(3, fitNegSlope->GetParameter(1));
+  errSlope->SetParameter(4, fitNegSlope->GetParameter(2));
+  errSlope->SetParameter(5, 0);// error on T
+
+  TCanvas* errNegSlopeCan = new TCanvas("errNegSlopeCan", "errNegSlopeCan");
+  errSlope->Draw();
+
+  double slope1 = fitNegSlope->Eval(10.43);
+  double err1 = errSlope->Eval(10.43);
+  double slope2 = fitNegSlope->Eval(23.8);
+  double err2 = errSlope->Eval(23.8);
+  double ratio = slope1 / slope2;
+  double errRatio = sqrt(pow(err1 / slope1, 2) + pow(err2 / slope2, 2)) * ratio;
+
+  std::cout << "slope at 10.43 C " << slope1 << " +- " << err1 << std::endl;
+  std::cout << "slope at 23.8 C  " << slope2 << " +- " << err2 << std::endl;
+  std::cout << "slope ratio      " << ratio << " +- " << errRatio << std::endl;
 
   return;
 }
