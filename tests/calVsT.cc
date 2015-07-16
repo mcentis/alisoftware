@@ -1,11 +1,18 @@
 void calVsT()
 {
+  const char* baseDir = "./data/epi100Y250VcalVsT/"; // it is important to use the final /
+  //const char* baseDir = "./data/epi100Y250VcalVsTfiltered/"; // it is important to use the final /
+  // runs and temperatures for delay 78
+  const int nPoints = 7;
+  double temp[nPoints] = {24.71, 22.98, 21.04, 18.38, 15.7, 13.24, 10.2};
+  const char* runs[nPoints] = {"T20C/run000006.root", "T10C/run000013.root", "T0C/run000022.root", "Tm10C/run000031.root", "Tm20C/run000040.root", "Tm30redone/run000073.root", "Tm40C/run000058.root"};
+  /*
   const char* baseDir = "./data/M200Punirrad/filesCalVsT/"; // it is important to use the final /
   // runs and temperatures for delay 78
   const int nPoints = 6;
   double temp[nPoints] = {13, 14, 19, 22, 23.6, 24};
-  char* runs[nPoints] = {"run000017.root", "run000013.root", "run000010.root", "run000007.root", "run000004.root", "run000002.root"};
-
+  const char* runs[nPoints] = {"run000017.root", "run000013.root", "run000010.root", "run000007.root", "run000004.root", "run000002.root"};
+  */
   // runs and temperatures for delay 82
   // const int nPoints = 4;
   // double temp[nPoints] = {13, 14, 19, 22};
@@ -34,6 +41,7 @@ void calVsT()
 
   double slope, offset;
   double eOff, eSlope, err; //errors
+  double errTemp = 0.2; // error on the temperature
   const double charge = 7500;
   TGraphErrors* respPos = new TGraphErrors();
   respPos->SetName("respPos");
@@ -58,38 +66,38 @@ void calVsT()
       dir = (TDirectory*) inFile->Get("Graphs_posCal_Parameters");
       hist = (TH1*) dir->Get("distrPar_1_posCal_goodCh");
       slopePos->SetPoint(i, temp[i], hist->GetMean());
-      slopePos->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
+      slopePos->SetPointError(i, errTemp, hist->GetRMS() / sqrt(hist->GetEntries()));
       slope = hist->GetMean();
       eSlope = hist->GetRMS() / sqrt(hist->GetEntries());
 
       hist = (TH1*) dir->Get("distrPar_0_posCal_goodCh");
       offsetPos->SetPoint(i, temp[i], hist->GetMean());
-      offsetPos->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
+      offsetPos->SetPointError(i, errTemp, hist->GetRMS() / sqrt(hist->GetEntries()));
       offset = hist->GetMean();
       eOff = hist->GetRMS() / sqrt(hist->GetEntries());
 
       respPos->SetPoint(i, temp[i], charge * slope + offset);
       err = sqrt(charge * charge * eSlope * eSlope + eOff * eOff);
-      respPos->SetPointError(i, 0, err);
+      respPos->SetPointError(i, errTemp, err);
 
       std::cout << "pos cal slope " << slope << " offset " << offset << std::endl;
 
       dir = (TDirectory*) inFile->Get("Graphs_negCal_Parameters");
       hist = (TH1*) dir->Get("distrPar_1_negCal_goodCh");
       slopeNeg->SetPoint(i, temp[i], hist->GetMean());
-      slopeNeg->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
+      slopeNeg->SetPointError(i, errTemp, hist->GetRMS() / sqrt(hist->GetEntries()));
       slope = hist->GetMean();
       eSlope = hist->GetRMS() / sqrt(hist->GetEntries());
 
       hist = (TH1*) dir->Get("distrPar_0_negCal_goodCh");
       offsetNeg->SetPoint(i, temp[i], hist->GetMean());
-      offsetNeg->SetPointError(i, 0, hist->GetRMS() / sqrt(hist->GetEntries()));
+      offsetNeg->SetPointError(i, errTemp, hist->GetRMS() / sqrt(hist->GetEntries()));
       offset = hist->GetMean();
       eOff = hist->GetRMS() / sqrt(hist->GetEntries());
 
       respNeg->SetPoint(i, temp[i], charge * slope + offset);
       err = sqrt(charge * charge * eSlope * eSlope + eOff * eOff);
-      respNeg->SetPointError(i, 0, err);
+      respNeg->SetPointError(i, errTemp, err);
 
       std::cout << "neg cal slope " << slope << " offset " << offset << std::endl;
 
@@ -97,10 +105,16 @@ void calVsT()
     }
 
   std::cout << "readen files" << std::endl;
-
+  /*
   TF1* fitPosSlope = new TF1("fitPosSlope", "pol2", 0, 30);
   TF1* fitNegSlope = new TF1("fitNegSlope", "pol2", 0, 30);
+  fitPosSlope->SetParameters(0.004, 7e-5, -4e-6); // start values in case of fit with errors in T
   fitNegSlope->SetParameters(0.004, 7e-5, -4e-6); // start values in case of fit with errors in T
+  */
+  TF1* fitPosSlope = new TF1("fitPosSlope", "pol1", 0, 30);
+  TF1* fitNegSlope = new TF1("fitNegSlope", "pol1", 0, 30);
+  fitPosSlope->SetParameters(0.004, -7e-5); // start values in case of fit with errors in T
+  fitNegSlope->SetParameters(0.004, -7e-5); // start values in case of fit with errors in T
 
   TCanvas* posCan = new TCanvas("posCan", "posCan");
   posCan->Divide(2, 1);
@@ -132,44 +146,49 @@ void calVsT()
 
   TCanvas* posFuncCan = new TCanvas("posFuncCan", "posFuncCan");
   fitPosSlope->Draw();
-  //slopePos->Draw("Psame");
+  fitPosSlope->GetXaxis()->SetTitle("Chip temperature [C]");
+  fitPosSlope->GetYaxis()->SetTitleOffset(1.5);
+  fitPosSlope->GetYaxis()->SetTitle("Gain [ADC/e^{-}]");
+  slopePos->Draw("Psame");
   posFuncCan->Modified();
   posFuncCan->Update();
 
   TCanvas* negFuncCan = new TCanvas("negFuncCan", "negFuncCan");
   fitNegSlope->Draw();
-  //slopeNeg->Draw("Psame");
+  slopeNeg->Draw("Psame");
   negFuncCan->Modified();
   negFuncCan->Update();
 
-  // TCanvas* respCan = new TCanvas("respCan", "respCan");
-  // respCan->Divide(2, 1);
-  // respCan->cd(1);
-  // respPos->Draw("A*");
-  // respPos->GetXaxis()->SetTitle("Chip temperature [C]");
-  // respPos->GetYaxis()->SetTitle("Response [ADC]");
-  // respCan->cd(2);
-  // respNeg->Draw("A*");
-  // respNeg->GetXaxis()->SetTitle("Chip temperature [C]");
-  // respNeg->GetYaxis()->SetTitle("Response [ADC]");
-  // respCan->Modified();
-  // respCan->Update();
-
+  TCanvas* respCan = new TCanvas("respCan", "respCan");
+  respCan->Divide(2, 1);
+  respCan->cd(1);
+  respPos->Draw("A*");
+  respPos->GetXaxis()->SetTitle("Chip temperature [C]");
+  respPos->GetYaxis()->SetTitle("Response [ADC]");
+  respCan->cd(2);
+  respNeg->Draw("A*");
+  respNeg->GetXaxis()->SetTitle("Chip temperature [C]");
+  respNeg->GetYaxis()->SetTitle("Response [ADC]");
+  respCan->Modified();
+  respCan->Update();
+  /*
   TF1* errSlope = new TF1("errSlope", "sqrt(pow([0], 2) + pow(x * [1], 2) + pow(x * x * [2], 2) + pow(([3] + 0.5 * [4] * x) * [5], 2))", 0, 30);
   errSlope->SetParameter(0, fitNegSlope->GetParError(0));
   errSlope->SetParameter(1, fitNegSlope->GetParError(1));
   errSlope->SetParameter(2, fitNegSlope->GetParError(2));
   errSlope->SetParameter(3, fitNegSlope->GetParameter(1));
   errSlope->SetParameter(4, fitNegSlope->GetParameter(2));
-  errSlope->SetParameter(5, 0);// error on T
+  errSlope->SetParameter(5, errTemp);// error on T
 
   TCanvas* errNegSlopeCan = new TCanvas("errNegSlopeCan", "errNegSlopeCan");
   errSlope->Draw();
-
+  */
   double slope1 = fitNegSlope->Eval(10.43);
-  double err1 = errSlope->Eval(10.43);
+  //double err1 = errSlope->Eval(10.43);
+  double err1 = 0;
   double slope2 = fitNegSlope->Eval(23.8);
-  double err2 = errSlope->Eval(23.8);
+  //double err2 = errSlope->Eval(23.8);
+  double err2 = 0;
   double ratio = slope1 / slope2;
   double errRatio = sqrt(pow(err1 / slope1, 2) + pow(err2 / slope2, 2)) * ratio;
 
