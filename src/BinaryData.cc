@@ -150,6 +150,7 @@ void BinaryData::ReadFile()
   unsigned int dbType;
   bool isUserDb;
   uint32_t dbSize;
+  uint32_t clock; // not sure abou meaning
   char* dataBlock;
   int evtCount = 0;
 
@@ -221,10 +222,13 @@ void BinaryData::ReadFile()
 	    }
 
 	  fileStr.read((char*) &scanValue, sizeDouble);
-	  injCharge = (double) (int(scanValue) & 0xff);
+	  injCharge = (double) (int(scanValue) & 0xffff);
 	  injCharge *= 1024;
 	  delay = (double) (int(scanValue) >> 16);
 
+	  if(version > 2)
+	    fileStr.read((char*) &clock, sizeUint32); // not really sure about the meaning of this variable
+	  
 	  fileStr.read((char*) &rawTime, sizeUint32);
 	  fileStr.read((char*) &rawTemp, sizeUint16);
 
