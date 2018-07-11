@@ -2,7 +2,7 @@
 INCLUDEDIR = include
 SRCDIR = src
 OBJDIR = obj
-EXECUTABLEDIR = executables
+EXECUTABLEDIR = bin
 
 # compiler
 CC = g++
@@ -51,3 +51,6 @@ $(OBJDIR)/Dict.so: $(OBJDIR)/Dict.cxx
 
 clean:
 	rm -f $(TARGETS) $(wildcard $(OBJDIR)/*)
+
+clear:
+	rm -f $(wildcard $(INCLUDEDIR)/*~) $(wildcard $(SRCDIR)/*~) $(wildcard tests/*~)
