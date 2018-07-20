@@ -180,16 +180,22 @@ void CalRun::fitCalibrations()
   TF1* fitFunc;
   TCanvas* servCan = new TCanvas();
 
+  bool linFit = false; // is the fitting done with a pol1
+  if(strcmp(fitCal, "pol1") == 0) // if the strings are the same
+    linFit = true;
+  
   for(int iCh = 0; iCh < nChannels; iCh++)
     {
       fitFunc = new TF1("fitFunc", fitCal, startFit, endFit);
       fitFunc->SetLineColor(kRed);
 
-
       calProfiles[iCh]->Fit(fitFunc, "QR+"); // the + is to store both the fits in the profile
 
       fitFunc->GetParameters(parameters[iCh]);
 
+      if(linFit) // if linear fit, save absolute gain value
+	parameters[iCh][1] = fabs(parameters[iCh][1]);
+      
       redChi2Cal->Fill(fitFunc->GetChisquare() / fitFunc->GetNDF());
 
       redChi2vsCh->SetPoint(iCh, iCh, fitFunc->GetChisquare() / fitFunc->GetNDF());
