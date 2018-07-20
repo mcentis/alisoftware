@@ -25,9 +25,8 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
     }
 
   for(int iCh = 0; iCh < nChannels; ++iCh)
-    for(int pol = 0; pol < 2; pol++)
       for(int iPar = 0; iPar < nParameters; ++iPar)
-	calibrations[iCh][pol][iPar] = 0;
+	calibrations[iCh][iPar] = 0;
 
   toAliE = new TF1("toAliE", convertToe);
 
@@ -145,9 +144,8 @@ void DataRun::ReadCalFile(const char* calFile)
     {
       std::cout << "[DataRun::ReadcalFile] Impossile to open " << calFile << " all parameters set to 0" << std::endl;
       for(int iCh = 0; iCh < nChannels; ++iCh)
-	for(int pol = 0; pol < 2; pol++)
 	  for(int iPar = 0; iPar < nParameters; ++iPar)
-	    calibrations[iCh][pol][iPar] = 0;
+	    calibrations[iCh][iPar] = 0;
 
       return;
     }
@@ -156,7 +154,6 @@ void DataRun::ReadCalFile(const char* calFile)
   std::istringstream lineStr;
 
   int chNum;
-  int pol;
 
   while(calStr.good())
     {
@@ -165,10 +162,10 @@ void DataRun::ReadCalFile(const char* calFile)
       lineStr.clear();
       lineStr.str(line);
 
-      lineStr >> chNum >> pol;
+      lineStr >> chNum;
 
 	for(int iPar = 0; iPar < nParameters; ++iPar)
-	  lineStr >> calibrations[chNum][pol][iPar];
+	  lineStr >> calibrations[chNum][iPar];
     }
 
   calStr.close();
@@ -285,10 +282,7 @@ void DataRun::doSpecificStuff()
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // apply calibration to the signal
     {
-      if(signal[goodChannels[iCh]] > 0) // positive signal
-	toAliE->SetParameters(calibrations[goodChannels[iCh]][1]);
-      else
-	toAliE->SetParameters(calibrations[goodChannels[iCh]][0]);
+      toAliE->SetParameter(0, fabs(calibrations[goodChannels[iCh]][1])); // use only the gain
 
       caliSignal[goodChannels[iCh]] = toAliE->Eval(signal[goodChannels[iCh]]);
     }
@@ -404,11 +398,8 @@ void DataRun::AddStrip(cluster* clu, Float_t* phArray, int stripNum)
   clu->strips.push_back(stripNum);
   clu->adcStrips.push_back(phArray[stripNum] * scaleFactor);
 
-  if(phArray[stripNum] > 0) // positive signal
-    toAliE->SetParameters(calibrations[stripNum][1]);
-  else
-    toAliE->SetParameters(calibrations[stripNum][0]);
-
+  toAliE->SetParameter(0, fabs(calibrations[stripNum][1])); // use only the gain
+  
   double charge = toAliE->Eval(phArray[stripNum]);
   clu->qTot += charge;
   clu->qStrips.push_back(charge);

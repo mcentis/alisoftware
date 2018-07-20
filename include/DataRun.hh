@@ -21,7 +21,7 @@ class DataRun : public BinaryData
   Float_t noise[nChannels];
 
   void ReadCalFile(const char* calFile);
-  Double_t calibrations[nChannels][2][nParameters]; // 2 polarities
+  Double_t calibrations[nChannels][nParameters]; // one fit for both polarities
   TF1* toAliE; // function to convert the adc info to alibava electrons
 
   void CommonModeCalculation(double* phChannels); // this takes the pedestal subtracted ph, common mode as line with slope, cuts for signal exclusion
