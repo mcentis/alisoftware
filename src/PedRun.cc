@@ -61,16 +61,32 @@ PedRun::PedRun(const char* binFile, ConfigFileReader* Conf):
   redChi2Ped = new TH1F("redChi2Ped", "Reduced #chi^{2} pedestals fit;#chi^{2} / NDF;Entries", 200, 0, 20);
   redChi2Noise = new TH1F("redChi2Noise", "Reduced #chi^{2} noise fit;#chi^{2} / NDF;Entries", 200, 0, 20);
 
-  commModeGrSlope = new TGraph();
-  commModeGrSlope->SetName("commModeGrSlope");
-  commModeGrSlope->SetTitle("Slope of the common mode vs. event");
+  commModeGrSlope = new TGraph*[nChips];
+  commModeGrOffset =  new TGraph*[nChips];
+  commModeSlopeDistr = new TH1F*[nChips];
+  commModeOffsetDistr = new TH1F*[nChips];
 
-  commModeGrOffset = new TGraph();
-  commModeGrOffset->SetName("commModeGrOffset");
-  commModeGrOffset->SetTitle("Offset of the common mode vs. event");
+  for(int iChip = 0; iChip < nChips; ++iChip){
+    sprintf(name, "commModeGrSlopeChip%d", iChip);
+    sprintf(title, "Slope of the common mode vs. event chip %d", iChip);
+    commModeGrSlope[iChip] = new TGraph();
+    commModeGrSlope[iChip]->SetName(name);
+    commModeGrSlope[iChip]->SetTitle(title);
 
-  commModeSlopeDistr = new TH1F("commModeSlopeDistr", "Common mode slope distribution;Slope [ADC / Ch.];Entries", 200, -1, 1);
-  commModeOffsetDistr = new TH1F("commModeOffsetDistr", "Common mode offset distribution;Offset [ADC];Entries", 1000, -500, 500);
+    sprintf(name, "commModeGrOffsetChip%d", iChip);
+    sprintf(title, "Offset of the common mode vs. event chip %d", iChip);
+    commModeGrOffset[iChip] = new TGraph();
+    commModeGrOffset[iChip]->SetName(name);
+    commModeGrOffset[iChip]->SetTitle(title);
+
+    sprintf(name, "commModeSlopeDistrChip%d", iChip);
+    sprintf(title, "Common mode slope distribution chip %d;Slope [ADC / Ch.];Entries", iChip);
+    commModeSlopeDistr[iChip] = new TH1F(name, title, 200, -1, 1);
+
+    sprintf(name, "commModeOffsetDistrChip%d", iChip);
+    sprintf(title, "Common mode offset distribution chip %d;Slope [ADC / Ch.];Entries", iChip);
+    commModeOffsetDistr[iChip] = new TH1F(name, title, 1000, -500, 500);
+  }
 }
 
 PedRun::~PedRun()
@@ -85,7 +101,7 @@ void PedRun::doSpecificStuff() // specific version of the function from parent c
   return;
 }
 
-void PedRun::CommonModeCalculation(double* phChannels, Float_t* res) // cm with slope, the form is y = a + bx (y-> PH, x->ch num) formulas from numerical recipes
+void PedRun::CommonModeCalculation(double* phChannels, Float_t* res, int chipNum) // cm with slope, the form is y = a + bx (y-> PH, x->ch num) formulas from numerical recipes
 {
   double S = 0;
   double Sx = 0;
@@ -94,16 +110,22 @@ void PedRun::CommonModeCalculation(double* phChannels, Float_t* res) // cm with 
   double Sxy = 0;
 
   // all the formulas assumes weights = 1
-  S = goodChannels.size();
-
   for(unsigned int i = 0; i < goodChannels.size(); ++i)
-    {
+    if(goodChannels[i] < nChChip * (chipNum + 1) && goodChannels[i] >= nChChip * chipNum){
+      S++; // count channels used
       Sx += goodChannels[i];
       Sy += phChannels[goodChannels[i]];
       Sxx += goodChannels[i] * goodChannels[i];
       Sxy += goodChannels[i] * phChannels[goodChannels[i]];
     }
 
+  if(S < 2){ // not enough channels for the calculation
+    res[0] = 0;
+    res[1] = 0;
+    return;
+  }
+
+  
   double Delta = S * Sxx - Sx * Sx;
 
   res[0] = (Sxx * Sy - Sx * Sxy) / Delta; // a
@@ -116,14 +138,16 @@ void PedRun::computeNoise()
 {
   UInt_t PH[nChannels];
   double pedSubPH[nChannels];
-  Float_t commMode[2] = {0};
+  Float_t commMode[nChips][2]; // commMode[chip num][0->offset, 1->slope]
   long int nEntries;
 
   rawEvtTree->SetBranchStatus("*", 0); // deactivate all branches
   rawEvtTree->SetBranchStatus("adcPH", 1); // activate this branch
   rawEvtTree->SetBranchAddress("adcPH", PH);
 
- TBranch* commBr = rawEvtTree->Branch("commMode", commMode, "commMode[2]/F"); // new branch
+  char brTitle[200];
+  sprintf(brTitle, "commMode[%d][2]/F", nChips);
+  TBranch* commBr = rawEvtTree->Branch("commMode", commMode, brTitle); // new branch
 
   nEntries = rawEvtTree->GetEntries();
 
@@ -134,17 +158,23 @@ void PedRun::computeNoise()
       for(int iCh = 0; iCh < nChannels; ++iCh) // pedestal subtraction
 	pedSubPH[iCh] = PH[iCh] - pedestals[iCh];
 
-      CommonModeCalculation(pedSubPH, commMode);
-      commModeGrSlope->SetPoint(iEvt, iEvt, commMode[1]);
-      commModeGrOffset->SetPoint(iEvt, iEvt, commMode[0]);
-      commModeSlopeDistr->Fill(commMode[1]);
-      commModeOffsetDistr->Fill(commMode[0]);
+      for(int iChip = 0; iChip < nChips; ++iChip){
+	CommonModeCalculation(pedSubPH, commMode[iChip], iChip);
+	commModeGrSlope[iChip]->SetPoint(iEvt, iEvt, commMode[iChip][1]);
+	commModeGrOffset[iChip]->SetPoint(iEvt, iEvt, commMode[iChip][0]);
+	commModeSlopeDistr[iChip]->Fill(commMode[iChip][1]);
+	commModeOffsetDistr[iChip]->Fill(commMode[iChip][0]);
+      }
 
       commBr->Fill(); // fill just this branch
 
-      for(unsigned int iHist = 0; iHist < noiseHist.size(); ++iHist)
-	noiseHist[iHist]->Fill(pedSubPH[goodChannels[iHist]] - commMode[0] - goodChannels[iHist] * commMode[1]);
-
+      for(int iChip = 0; iChip < nChips; ++iChip){
+	for(unsigned int iHist = 0; iHist < noiseHist.size(); ++iHist){
+	  if(goodChannels[iHist] < nChChip * (iChip + 1) && goodChannels[iHist] >= nChChip * iChip) // select the channels for the right chip to have the right common mode
+	    noiseHist[iHist]->Fill(pedSubPH[goodChannels[iHist]] - commMode[iChip][0] - goodChannels[iHist] * commMode[iChip][1]);
+	}
+      }
+      
     }
 
   rawEvtTree->SetBranchStatus("*", 1); // activate all branches
@@ -252,24 +282,28 @@ void PedRun::writeHistos()
   NoiseGraph->GetYaxis()->SetRangeUser(0, 20);
   NoiseGraph->Write();
 
-  commModeGrSlope->Draw("AP");
-  commModeGrSlope->GetXaxis()->SetTitle("Event");
-  commModeGrSlope->GetYaxis()->SetTitle("Slope [ADC / Ch. number]");
-  commModeGrSlope->Write();
-
-  commModeGrOffset->Draw("AP");
-  commModeGrOffset->GetXaxis()->SetTitle("Event");
-  commModeGrOffset->GetYaxis()->SetTitle("Offset [ADC]");
-  commModeGrOffset->Write();
-
+  for(int iChip = 0; iChip < nChips; iChip++){
+    commModeGrSlope[iChip]->Draw("AP");
+    commModeGrSlope[iChip]->GetXaxis()->SetTitle("Event");
+    commModeGrSlope[iChip]->GetYaxis()->SetTitle("Slope [ADC / Ch. number]");
+    commModeGrSlope[iChip]->Write();
+    
+    commModeGrOffset[iChip]->Draw("AP");
+    commModeGrOffset[iChip]->GetXaxis()->SetTitle("Event");
+    commModeGrOffset[iChip]->GetYaxis()->SetTitle("Offset [ADC]");
+    commModeGrOffset[iChip]->Write();
+  }
+  
   delete servCan;
 
   redChi2Ped->Write();
   redChi2Noise->Write();
 
-  commModeSlopeDistr->Write();
-  commModeOffsetDistr->Write();
-
+  for(int iChip = 0; iChip < nChips; iChip++){
+    commModeSlopeDistr[iChip]->Write();
+    commModeOffsetDistr[iChip]->Write();
+  }
+  
   return;
 }
 
