@@ -14,9 +14,8 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
   BinaryData(binFile, Conf)
 {
   for(int i = 0; i < nChannels; ++i)
-    for(int pol = 0; pol < 2; ++pol)
       for(int j = 0; j < nParameters; ++j)
-	parameters[i][pol][j] = 0;
+	parameters[i][j] = 0;
 
   for(int i = 0; i < nChannels; ++i)
     {
@@ -36,37 +35,27 @@ CalRun::CalRun(const char* binFile, ConfigFileReader* Conf):
   histoDir = outFile->mkdir("Histograms");
   profileDir = outFile->mkdir("Profiles");
 
-  parPosCal = outFile->mkdir("Graphs_posCal_Parameters");
-  parNegCal = outFile->mkdir("Graphs_negCal_Parameters");
+  parCal = outFile->mkdir("Graphs_Parameters");
 
   outFile->cd();
 
   redChi2Cal = new TH1F("redChi2Cal", "Reduced #chi^{2} of the calibrations fit;#chi^{2} / NDF;Entries", 30, 0, 30);
 
-  redChi2vsCh_posCal = new TGraph();
-  redChi2vsCh_posCal->SetName("redChi2vsCh_posCal");
-  redChi2vsCh_posCal->SetTitle("Reduced #chi^{2} of the calibrations fit for the positive charge");
+  redChi2vsCh = new TGraph();
+  redChi2vsCh->SetName("redChi2vsCh_posCal");
+  redChi2vsCh->SetTitle("Reduced #chi^{2} of the calibrations fit for the positive charge");
 
-  redChi2vsCh_negCal = new TGraph();
-  redChi2vsCh_negCal->SetName("redChi2vsCh_negCal");
-  redChi2vsCh_negCal->SetTitle("Reduced #chi^{2} of the calibrations fit for the negative charge");
 
   char name[50];
   char title[200];
 
   for(int i = 0; i < nParameters; ++i)
     {
-      parVsCh_posCal[i] = new TGraph();
-      sprintf(name, "par_%i_vsChPosCal", i);
-      sprintf(title, "Fit parameter %i vs channel, positive calibration", i);
-      parVsCh_posCal[i]->SetName(name);
-      parVsCh_posCal[i]->SetTitle(title);
-
-      parVsCh_negCal[i] = new TGraph();
-      sprintf(name, "par_%i_vsChNegCal", i);
-      sprintf(title, "Fit parameter %i vs channel, negative calibration", i);
-      parVsCh_negCal[i]->SetName(name);
-      parVsCh_negCal[i]->SetTitle(title);
+      parVsCh[i] = new TGraph();
+      sprintf(name, "par_%i_vsCh", i);
+      sprintf(title, "Fit parameter %i vs channel", i);
+      parVsCh[i]->SetName(name);
+      parVsCh[i]->SetTitle(title);
     }
 
   iSample = 1;
@@ -192,31 +181,22 @@ void CalRun::fitCalibrations()
   TCanvas* servCan = new TCanvas();
 
   for(int iCh = 0; iCh < nChannels; iCh++)
-    for(int pol = 0; pol < 2; ++pol)
-      {
-	if(pol == 0) // negative polarity
-	  {
-	    fitFunc = new TF1("fitFuncNeg", fitCal, -endFit, -startFit);
-	    fitFunc->SetLineColor(kBlue);
-	  }
-	else // positive polarity
-	  {
-	    fitFunc = new TF1("fitFuncPos", fitCal, startFit, endFit);
-	    fitFunc->SetLineColor(kRed);
-	  }
+    {
+      fitFunc = new TF1("fitFunc", fitCal, startFit, endFit);
+      fitFunc->SetLineColor(kRed);
 
-	calProfiles[iCh]->Fit(fitFunc, "QR+"); // the + is to store both the fits in the profile
 
-	fitFunc->GetParameters(parameters[iCh][pol]);
+      calProfiles[iCh]->Fit(fitFunc, "QR+"); // the + is to store both the fits in the profile
 
-	redChi2Cal->Fill(fitFunc->GetChisquare() / fitFunc->GetNDF());
+      fitFunc->GetParameters(parameters[iCh]);
 
-	if(pol == 0) redChi2vsCh_negCal->SetPoint(iCh, iCh, fitFunc->GetChisquare() / fitFunc->GetNDF());
-	else redChi2vsCh_posCal->SetPoint(iCh, iCh, fitFunc->GetChisquare() / fitFunc->GetNDF());
+      redChi2Cal->Fill(fitFunc->GetChisquare() / fitFunc->GetNDF());
 
-	delete fitFunc;
-      }
+      redChi2vsCh->SetPoint(iCh, iCh, fitFunc->GetChisquare() / fitFunc->GetNDF());
 
+      delete fitFunc;
+    }
+  
   delete servCan;
 
   return;
@@ -238,23 +218,17 @@ void CalRun::drawParGraphs()
 {
   for(int iCh = 0; iCh < nChannels; iCh++)
     for(int iPar = 0; iPar < nParameters; ++iPar)
-      {
-	parVsCh_negCal[iPar]->SetPoint(iCh, iCh, parameters[iCh][0][iPar]);
-	parVsCh_posCal[iPar]->SetPoint(iCh, iCh, parameters[iCh][1][iPar]);
-      }
+	parVsCh[iPar]->SetPoint(iCh, iCh, parameters[iCh][iPar]);
+
 
   TCanvas* srvCan = new TCanvas();
   srvCan->cd();
 
   for(int iPar = 0; iPar < nParameters; ++iPar)
     {
-      parVsCh_posCal[iPar]->Draw("A*");
-      parVsCh_posCal[iPar]->GetXaxis()->SetTitle("Channel");
-      parVsCh_posCal[iPar]->GetYaxis()->SetTitle("Par. value");
-      
-      parVsCh_negCal[iPar]->Draw("A*");
-      parVsCh_negCal[iPar]->GetXaxis()->SetTitle("Channel");
-      parVsCh_negCal[iPar]->GetYaxis()->SetTitle("Par. value");
+      parVsCh[iPar]->Draw("A*");
+      parVsCh[iPar]->GetXaxis()->SetTitle("Channel");
+      parVsCh[iPar]->GetYaxis()->SetTitle("Par. value");
     }
 
   delete srvCan;
@@ -265,41 +239,25 @@ void CalRun::drawParGraphs()
 
   for(int iPar = 0; iPar < nParameters; ++iPar)
     {
-      sprintf(name, "distrPar_%i_posCal", iPar);
-      sprintf(title, "Distribution of parameter %i, positive calibration", iPar);
-      min = parVsCh_posCal[iPar]->GetYaxis()->GetXmin();
-      max = parVsCh_posCal[iPar]->GetYaxis()->GetXmax();
+      sprintf(name, "distrPar_%i", iPar);
+      sprintf(title, "Distribution of parameter %i", iPar);
+      min = parVsCh[iPar]->GetYaxis()->GetXmin();
+      max = parVsCh[iPar]->GetYaxis()->GetXmax();
 
-      parDistr_posCal[iPar] = new TH1F(name, title, 200, min, max);
+      parDistr[iPar] = new TH1F(name, title, 200, min, max);
 
-      sprintf(name, "distrPar_%i_posCal_goodCh", iPar);
-      sprintf(title, "Distribution of parameter %i, positive calibration, good channels", iPar);
-      parDistr_posCal_goodCh[iPar] = new TH1F(name, title, 200, min, max);
-
-      sprintf(name, "distrPar_%i_negCal", iPar);
-      sprintf(title, "Distribution of parameter %i, negative calibration", iPar);
-      min = parVsCh_negCal[iPar]->GetYaxis()->GetXmin();
-      max = parVsCh_negCal[iPar]->GetYaxis()->GetXmax();
-
-      parDistr_negCal[iPar] = new TH1F(name, title, 200, min, max);
-
-      sprintf(name, "distrPar_%i_negCal_goodCh", iPar);
-      sprintf(title, "Distribution of parameter %i, negative calibration, good channels", iPar);
-      parDistr_negCal_goodCh[iPar] = new TH1F(name, title, 200, min, max);
-
+      sprintf(name, "distrPar_%i_goodCh", iPar);
+      sprintf(title, "Distribution of parameter %i, good channels", iPar);
+      parDistr_goodCh[iPar] = new TH1F(name, title, 200, min, max);
     }
 
   for(int iCh = 0; iCh < nChannels; iCh++)
     for(int iPar = 0; iPar < nParameters; ++iPar)
       {
-	parDistr_negCal[iPar]->Fill(parameters[iCh][0][iPar]);
-	parDistr_posCal[iPar]->Fill(parameters[iCh][1][iPar]);
+	parDistr[iPar]->Fill(parameters[iCh][iPar]);
 
 	if(isGoodCh[iCh])
-	  {
-	    parDistr_negCal_goodCh[iPar]->Fill(parameters[iCh][0][iPar]);
-	    parDistr_posCal_goodCh[iPar]->Fill(parameters[iCh][1][iPar]);
-	  }
+	    parDistr_goodCh[iPar]->Fill(parameters[iCh][iPar]);
       }
 
   return;
@@ -312,27 +270,17 @@ void CalRun::writeParGraphs()
   TCanvas* srvCan = new TCanvas();
   srvCan->cd();
 
-  redChi2vsCh_posCal->Draw("A*");
-  redChi2vsCh_posCal->GetXaxis()->SetTitle("Channel");
-  redChi2vsCh_posCal->GetYaxis()->SetTitle("#chi^{2} / NDF");
-  redChi2vsCh_posCal->Write();
-
-  redChi2vsCh_negCal->Draw("A*");
-  redChi2vsCh_negCal->GetXaxis()->SetTitle("Channel");
-  redChi2vsCh_negCal->GetYaxis()->SetTitle("#chi^{2} / NDF");
-  redChi2vsCh_negCal->Write();
+  redChi2vsCh->Draw("A*");
+  redChi2vsCh->GetXaxis()->SetTitle("Channel");
+  redChi2vsCh->GetYaxis()->SetTitle("#chi^{2} / NDF");
+  redChi2vsCh->Write();
 
   delete srvCan;
 
-  parPosCal->cd();
-  for(int iPar = 0; iPar < nParameters; ++iPar) parVsCh_posCal[iPar]->Write();
-  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_posCal[iPar]->Write();
-  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_posCal_goodCh[iPar]->Write();
-
-  parNegCal->cd();
-  for(int iPar = 0; iPar < nParameters; ++iPar) parVsCh_negCal[iPar]->Write();
-  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_negCal[iPar]->Write();
-  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_negCal_goodCh[iPar]->Write();
+  parCal->cd();
+  for(int iPar = 0; iPar < nParameters; ++iPar) parVsCh[iPar]->Write();
+  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr[iPar]->Write();
+  for(int iPar = 0; iPar < nParameters; ++iPar) parDistr_goodCh[iPar]->Write();
 
   return;
 }
@@ -392,14 +340,13 @@ void CalRun::writeParList()
   parList.open(fileName);
 
   for(int iCh = 0; iCh < nChannels; ++iCh)
-    for(int pol = 0; pol < 2; ++pol)
-      {
-	parList << iCh << '\t' << pol;
-	for(int iPar = 0; iPar < nParameters; ++iPar) parList <<'\t' << parameters[iCh][pol][iPar];
-
-	parList << '\n';
-      }
-
+    {
+      parList << iCh;
+      for(int iPar = 0; iPar < nParameters; ++iPar) parList <<'\t' << parameters[iCh][iPar];
+      
+      parList << '\n';
+    }
+  
   parList.close();
 
   return;

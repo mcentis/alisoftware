@@ -14,7 +14,7 @@ class CalRun : public BinaryData
 {
   TDirectory* histoDir;
   TDirectory* profileDir;
-  Double_t parameters[nChannels][2][nParameters]; // the [2] dimension is there since there is a calibration for positive (1) and negative (0) values
+  Double_t parameters[nChannels][nParameters]; // one fit for both positive and negative signals
   TH2F* calHistos[nChannels];
   TProfile* calProfiles[nChannels];
 
@@ -41,20 +41,15 @@ class CalRun : public BinaryData
 
   TH1F* redChi2Cal;
 
-  TDirectory* parPosCal;
-  TDirectory* parNegCal;
+  TDirectory* parCal;
 
-  TGraph* parVsCh_posCal[nParameters];
-  TGraph* parVsCh_negCal[nParameters];
+  TGraph* parVsCh[nParameters];
 
-  TH1F* parDistr_posCal[nParameters];
-  TH1F* parDistr_negCal[nParameters];
+  TH1F* parDistr[nParameters];
 
-  TH1F* parDistr_posCal_goodCh[nParameters]; // same as the ones before, just for good channels
-  TH1F* parDistr_negCal_goodCh[nParameters];
+  TH1F* parDistr_goodCh[nParameters]; // same as the ones before, just for good channels
 
-  TGraph* redChi2vsCh_posCal;
-  TGraph* redChi2vsCh_negCal;
+  TGraph* redChi2vsCh;
 
   void doSpecificStuff();
   void analyseRunHeader();

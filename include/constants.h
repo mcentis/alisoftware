@@ -8,7 +8,8 @@ const int nChannels = nChips * nChChip; // number of channels
 const int totHeadBits = 32; // number of header bits for all the chips 
 const int nParameters = 2; // paramters to fit the calibration
 const char* const fitCal = "pol1"; // fit the calibration
-const char* const convertToe = "(x - [0]) / [1]"; // convert to alibava e-
+//const char* const convertToe = "(x - [0]) / [1]"; // convert to alibava e-
+const char* const convertToe = "x / abs([1])"; // convert to alibava e-,  disregard offset, use abs value of gain (as done in software from alibava people)
 
 // first const: the pointed value is constant, second const: the pointer is constant
 // this syntax is needed to compile the code
