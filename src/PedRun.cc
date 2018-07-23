@@ -21,8 +21,8 @@ PedRun::PedRun(const char* binFile, ConfigFileReader* Conf):
   pedDir = outFile->mkdir("Pedestals");
   pedDir->cd();
 
-  char name[20];
-  char title[100];
+  char name[50];
+  char title[200];
 
   for(int i = 0; i < nChannels; ++i)
     {
