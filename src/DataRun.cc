@@ -55,7 +55,7 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   chPropTree = new TTree("chPropTree", "Channel properties");
   chPropTree->Branch("pedestals", pedestals, TString::Format("pedestals[%i]/F", nChannels)); // trick with the tstring to adjust the lenght of the array
   chPropTree->Branch("noise", noise, TString::Format("noise[%i]/F", nChannels));
-  chPropTree->Branch("calibrations", calibrations, TString::Format("calibrations[%i][2][%i]/D", nChannels, nParameters));
+  chPropTree->Branch("calibrations", calibrations, TString::Format("calibrations[%i][%i]/D", nChannels, nParameters));
 
   ReadPedFile(conf->GetValue("pedNoiseFile").c_str()); // read pedestal file
   ReadCalFile(conf->GetValue("calFile").c_str()); // read calibration file
@@ -67,24 +67,45 @@ DataRun::DataRun(const char* binFile, ConfigFileReader* Conf):
   // ====================== elaborated events =================
   clustVecPtr = &clustVec;
   cookedEvtTree = new TTree("cookedEvtTree", "Elaborated data");
-  cookedEvtTree->Branch("commMode", commMode, "commMode[2]/F");
+  cookedEvtTree->Branch("time", &time, "time/F");
+  cookedEvtTree->Branch("temp", &temp, "temp/F");
+  cookedEvtTree->Branch("commMode", commMode, TString::Format("commMode[%i][2]/F", nChips));
   cookedEvtTree->Branch("clustVec", "vector<cluster>", &clustVecPtr);
   cookedEvtTree->Branch("signal", signal, TString::Format("signal[%i]/F", nChannels));
   cookedEvtTree->Branch("caliSignal", caliSignal, TString::Format("caliSignal[%i]/F", nChannels));
 
   // ==================== plots ===============================
+  char name[50];
+  char title[200];
+
   chInCommMode = new TH1I("chInCommMode", "Number of channels used in common mode calculation after cuts;Number of channels;Events", 256, -0.5, 255.5);
 
-  commVsEvtOffset = new TGraph();
-  commVsEvtOffset->SetName("commVsEvtOffset");
-  commVsEvtOffset->SetTitle("Common mode offset vs event number");
+  commModeGrSlope = new TGraph*[nChips];
+  commModeGrOffset =  new TGraph*[nChips];
+  commModeSlopeDistr = new TH1F*[nChips];
+  commModeOffsetDistr = new TH1F*[nChips];
 
-  commVsEvtSlope = new TGraph();
-  commVsEvtSlope->SetName("commVsEvtSlope");
-  commVsEvtSlope->SetTitle("Common mode slope vs event number");
+  for(int iChip = 0; iChip < nChips; ++iChip){
+    sprintf(name, "commModeGrSlopeChip%d", iChip);
+    sprintf(title, "Slope of the common mode vs. event chip %d", iChip);
+    commModeGrSlope[iChip] = new TGraph();
+    commModeGrSlope[iChip]->SetName(name);
+    commModeGrSlope[iChip]->SetTitle(title);
 
-  commModeSlopeDistr = new TH1F("commModeSlopeDistr", "Common mode slope distribution;Slope [ADC / Ch.];Entries", 200, -1, 1);
-  commModeOffsetDistr = new TH1F("commModeOffsetDistr", "Common mode offset distribution;Offset [ADC];Entries", 1000, -500, 500);
+    sprintf(name, "commModeGrOffsetChip%d", iChip);
+    sprintf(title, "Offset of the common mode vs. event chip %d", iChip);
+    commModeGrOffset[iChip] = new TGraph();
+    commModeGrOffset[iChip]->SetName(name);
+    commModeGrOffset[iChip]->SetTitle(title);
+
+    sprintf(name, "commModeSlopeDistrChip%d", iChip);
+    sprintf(title, "Common mode slope distribution chip %d;Slope [ADC / Ch.];Entries", iChip);
+    commModeSlopeDistr[iChip] = new TH1F(name, title, 200, -1, 1);
+
+    sprintf(name, "commModeOffsetDistrChip%d", iChip);
+    sprintf(title, "Common mode offset distribution chip %d;Slope [ADC / Ch.];Entries", iChip);
+    commModeOffsetDistr[iChip] = new TH1F(name, title, 1000, -500, 500);
+  }
 
   clusterSize = new TH1I("clusterSize", "Cluster size;Number of channels", 256, -0.5, 255.5);
   nClustEvt = new TH1I("nClustEvt", "Number of clusters per event;Number of clusters", 101, -0.5, 100.5);
@@ -173,7 +194,7 @@ void DataRun::ReadCalFile(const char* calFile)
   return;
 }
 
-void DataRun::CommonModeCalculation(double* phChannels)
+ void DataRun::CommonModeCalculation(double* phChannels, int chipNum)
 {
   // common mode = a + b * chNum
   double S = 0;
@@ -191,7 +212,12 @@ void DataRun::CommonModeCalculation(double* phChannels)
   double sigma = 0; // variance centered on the fitted line
   double sumDevSq = 0; // sum to calculate the variance
 
-  std::vector<int> chInUse = goodChannels;
+  std::vector<int> chInUse;
+  // select the channels for the chip in consideration
+  for(unsigned int i = 0; i < goodChannels.size(); ++i)
+    if(goodChannels[i] < nChChip * (chipNum + 1) && goodChannels[i] >= nChChip * chipNum)
+      chInUse.push_back(goodChannels[i]);
+
   std::vector<int> chPrev; // channels used in the previous step
   int chNum = 0;
 
@@ -206,6 +232,12 @@ void DataRun::CommonModeCalculation(double* phChannels)
 
       // all the weights for the linear regression assumed to be 1
       S = chInUse.size();
+
+      if(S < 2){ // not enough channels for the calculation
+	commMode[chipNum][0] = 0;
+	commMode[chipNum][1] = 0;
+	return;
+      }
 
       for(unsigned int iCh = 0; iCh < chInUse.size(); ++iCh) // sums for the cm calculation
 	{
@@ -247,8 +279,8 @@ void DataRun::CommonModeCalculation(double* phChannels)
 	}
     }
 
-  commMode[0] = a;
-  commMode[1] = b;
+  commMode[chipNum][0] = a;
+  commMode[chipNum][1] = b;
 
   chInCommMode->Fill(chInUse.size());
 
@@ -267,17 +299,23 @@ void DataRun::doSpecificStuff()
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // pedestal subtraction
     pedSubPH[goodChannels[iCh]] = adcPH[goodChannels[iCh]] - pedestals[goodChannels[iCh]];
 
-  CommonModeCalculation(pedSubPH);
+  for(int iChip = 0; iChip < nChips; ++iChip)
+    CommonModeCalculation(pedSubPH, iChip);
 
-  int evtNum = commVsEvtOffset->GetN();
-  commVsEvtOffset->SetPoint(evtNum, evtNum, commMode[0]);
-  commVsEvtSlope->SetPoint(evtNum, evtNum, commMode[1]);
-  commModeSlopeDistr->Fill(commMode[1]);
-  commModeOffsetDistr->Fill(commMode[0]);
+  int evtNum = commModeGrSlope[0]->GetN();
+  for(int iChip = 0; iChip < nChips; ++iChip){
+    commModeGrSlope[iChip]->SetPoint(evtNum, evtNum, commMode[iChip][1]);
+    commModeGrOffset[iChip]->SetPoint(evtNum, evtNum, commMode[iChip][0]);
+    commModeSlopeDistr[iChip]->Fill(commMode[iChip][1]);
+    commModeOffsetDistr[iChip]->Fill(commMode[iChip][0]);
+  }
 
-  for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // common mode subtraction
-    signal[goodChannels[iCh]] = pedSubPH[goodChannels[iCh]] - commMode[0] - commMode[1] * goodChannels[iCh];
-
+  for(int iChip = 0; iChip < nChips; ++iChip){
+    for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // common mode subtraction
+      	  if(goodChannels[iCh] < nChChip * (iChip + 1) && goodChannels[iCh] >= nChChip * iChip) // select the channels for the right chip to have the right common mode
+	    signal[goodChannels[iCh]] = pedSubPH[goodChannels[iCh]] - commMode[iChip][0] - commMode[iChip][1] * goodChannels[iCh];
+  }
+  
   FindClusters(signal);
 
   for(unsigned int iCh = 0; iCh < goodChannels.size(); ++iCh) // apply calibration to the signal
@@ -372,22 +410,26 @@ void DataRun::WriteCookedTree()
 
   TCanvas* serv = new TCanvas();
 
-  commVsEvtOffset->Draw("AP");
-  commVsEvtOffset->GetXaxis()->SetTitle("Event number");
-  commVsEvtOffset->GetYaxis()->SetTitle("Offset[ADC]");
-  commVsEvtOffset->Write();
-
-  commVsEvtSlope->Draw("AP");
-  commVsEvtSlope->GetXaxis()->SetTitle("Event number");
-  commVsEvtSlope->GetYaxis()->SetTitle("Slope[ADC / Ch. number]");
-  commVsEvtSlope->Write();
+  for(int iChip = 0; iChip < nChips; iChip++){
+    commModeGrSlope[iChip]->Draw("AP");
+    commModeGrSlope[iChip]->GetXaxis()->SetTitle("Event");
+    commModeGrSlope[iChip]->GetYaxis()->SetTitle("Slope [ADC / Ch. number]");
+    commModeGrSlope[iChip]->Write();
+    
+    commModeGrOffset[iChip]->Draw("AP");
+    commModeGrOffset[iChip]->GetXaxis()->SetTitle("Event");
+    commModeGrOffset[iChip]->GetYaxis()->SetTitle("Offset [ADC]");
+    commModeGrOffset[iChip]->Write();
+  }
 
   delete serv;
 
   clusterSize->Write();
 
-  commModeSlopeDistr->Write();
-  commModeOffsetDistr->Write();
+  for(int iChip = 0; iChip < nChips; iChip++){
+    commModeSlopeDistr[iChip]->Write();
+    commModeOffsetDistr[iChip]->Write();
+  }
 
   return;
 }

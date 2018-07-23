@@ -24,7 +24,7 @@ class DataRun : public BinaryData
   Double_t calibrations[nChannels][nParameters]; // one fit for both polarities
   TF1* toAliE; // function to convert the adc info to alibava electrons
 
-  void CommonModeCalculation(double* phChannels); // this takes the pedestal subtracted ph, common mode as line with slope, cuts for signal exclusion
+  void CommonModeCalculation(double* phChannels, int chipNum); // this takes the pedestal subtracted ph, common mode as line with slope, cuts for signal exclusion
   void FindClusters(Float_t* phChannels); // this takes pedestal and common mode subtracted ph, the non used channels ph set to 0
 
   void FindClusterPos(cluster* clu); // find the position of the cluster using the center of gravity algorithm
@@ -44,17 +44,17 @@ class DataRun : public BinaryData
   double scaleFactor; // scale the ph in case it is needed, temperature effects as an example
 
   // branches of the elaborated events tree
-  Float_t commMode[2];
+  Float_t commMode[nChips][2];
   std::vector<cluster> clustVec;
   std::vector<cluster>* clustVecPtr;
   Float_t signal[nChannels];
   Float_t caliSignal[nChannels];
 
   TH1I* chInCommMode; // number of channels in the common mode calculation
-  TGraph* commVsEvtOffset; // common mode versus event number
-  TGraph* commVsEvtSlope; // common mode versus event number
-  TH1F* commModeSlopeDistr;
-  TH1F* commModeOffsetDistr;
+  TGraph** commModeGrSlope;
+  TGraph** commModeGrOffset;
+  TH1F** commModeSlopeDistr;
+  TH1F** commModeOffsetDistr;
 
   TH1I* clusterSize; // number of channels used in each cluster
   TH1I* nClustEvt; // number of clusters per event
